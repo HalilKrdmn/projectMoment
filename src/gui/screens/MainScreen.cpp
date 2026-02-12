@@ -1,0 +1,134 @@
+#include "gui/screens/MainScreen.h"
+#include "gui/screens/states/WelcomeState.h"
+#include "gui/screens/states/LoadingState.h"
+#include "gui/screens/states/VideoListState.h"
+#include "gui/screens/states/EmptyFolderState.h"
+#include "core/library/LibraryLoader.h"
+
+MainScreen::MainScreen(MainWindow* manager)
+    : BaseScreen(manager){
+
+    // Create states
+    m_welcomeState = std::make_unique<WelcomeState>();
+    m_loadingState = std::make_unique<LoadingState>();
+    m_videoListState = std::make_unique<VideoListState>();
+    m_emptyFolderState = std::make_unique<EmptyFolderState>();
+
+    DetermineInitialState();
+}
+
+// It checks every time the screen turns on.
+void MainScreen::DetermineInitialState() {
+    // Each time the screen appears, it checks the path in the config.
+    // If no path is specified in the config, the screen is set to WelcomeState.
+    if (!ValidateLibraryPath()) {
+        ChangeState(ContentState::WELCOME);
+        return;
+    }
+
+    // If the file path is found, it is scanned to check for any changes.
+    StartLibraryLoad();
+}
+
+// Checks the file path in the config file.
+bool MainScreen::ValidateLibraryPath() {
+    // Starts the config service
+    auto& services = CoreServices::Instance();
+    const auto* config = services.GetConfig();
+
+    std::cout << "[Debug] Config path: '" << config->libraryPath << "'" << std::endl;
+
+    // If the file path in the config is empty, it displays the WelcomeStates screen.
+    if (config->libraryPath.empty()) {
+        std::cout << "[Debug] Path is empty, switching to WELCOME" << std::endl;
+        return false;
+    }
+
+    // If the file path exists in the config but the file is not on the disk,
+    // it displays the WelcomeStates screen directly without creating a folder.
+    if (!std::filesystem::exists(config->libraryPath)) {
+        std::cout << "[Debug] Path in config does not exist on disk, switching to WELCOME" << std::endl;
+        return false;
+    }
+
+    // If everything is okay, return to true.
+    return true;
+}
+
+// Loads the folder in the selected path.
+void MainScreen::StartLibraryLoad() {
+    // Starts the config and Library services
+    auto& services = CoreServices::Instance();
+    auto* library = services.GetVideoLibrary();
+    const auto* config = services.GetConfig();
+
+    if (!library && !config) {
+        std::cerr << "[Error] VideoLibrary could not be initialized!" << std::endl;
+        ChangeState(ContentState::WELCOME);
+        return;
+    }
+
+    // Clears the loading screen and prepares for loading.
+    // (If there is nothing to load, the loading screen will not appear???)
+    m_loadingState->Clear();
+    ChangeState(ContentState::LOADING);
+
+    // It takes the file path from the library path section in the config and moves it to the Loading screen.
+    std::thread([this, library, config]() {
+        LibraryLoader::Run(library, config->libraryPath,
+            [this](const std::string& msg, const float progress) {
+                m_loadingState->AddLog(msg, progress);
+                m_loadingState->SetProgress(progress);
+            }
+        );
+
+        // It scans and records videos in the folder. If they are in the database, it skips them.
+        const auto videos = library->GetAllVideos();
+        this->SetCurrentVideos(videos);
+
+        ChangeState(videos.empty() ? ContentState::EMPTY_FOLDER : ContentState::VIDEO_LIST);
+        std::cout << "[MainScreen] Loaded " << videos.size() << " videos" << std::endl;
+    }).detach();
+}
+
+// Rendering Methods
+void MainScreen::Draw() {
+    constexpr ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration |
+                                       ImGuiWindowFlags_NoResize |
+                                       ImGuiWindowFlags_NoMove |
+                                       ImGuiWindowFlags_NoBackground;
+
+    const ImGuiViewport* viewport = ImGui::GetMainViewport();
+    ImGui::SetNextWindowPos(viewport->WorkPos);
+    ImGui::SetNextWindowSize(viewport->WorkSize);
+
+    ImGui::Begin(GetCurrentWindowName(), nullptr, flags);
+
+    switch (m_currentState) {
+        case ContentState::WELCOME:
+            m_welcomeState->Draw(this);
+            break;
+        case ContentState::LOADING:
+            m_loadingState->Draw(this);
+            break;
+        case ContentState::VIDEO_LIST:
+            m_videoListState->Draw(this);
+            break;
+        case ContentState::EMPTY_FOLDER:
+            m_emptyFolderState->Draw(this);
+            break;
+    }
+
+    ImGui::End();
+    m_folderBrowser.Draw();
+}
+
+const char* MainScreen::GetCurrentWindowName() const {
+    switch (m_currentState) {
+        case ContentState::WELCOME:       return "Welcome";
+        case ContentState::LOADING:       return "Loading";
+        case ContentState::VIDEO_LIST:    return "VideoList";
+        case ContentState::EMPTY_FOLDER:  return "EmptyFolder";
+        default:                          return "MainScreen";
+    }
+}

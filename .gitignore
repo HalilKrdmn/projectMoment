@@ -1,0 +1,11 @@
+## JetBrains IDE artifacts
+/.idea
+/cmake-build-debug
+
+# Compilation Output
+*.o
+*.a
+*.so
+
+# Test folders
+/dnm
