@@ -1,12 +1,15 @@
-#include "gui/screens/states/VideoListState.h"
+#include "gui/screens/main/states/VideoListState.h"
+#include "gui/screens/main/MainScreen.h"
 
-#include "gui/screens/MainScreen.h"
 #include "gui/utils/ThumbnailLoader.h"
 #include "gui/utils/FormatUtils.h"
 #include "data/VideoInfo.h"
 
 #include <algorithm>
 
+MainWindow* VideoListState::GetMainWindow(const MainScreen* parent) {
+    return parent->GetManager();
+}
 
 void VideoListState::Draw(MainScreen* parent) {
     if (!m_thumbnailsLoaded) {
@@ -77,12 +80,13 @@ void VideoListState::DrawVideoGrid(MainScreen* parent) {
         
         ImGui::PopTextWrapPos();
         ImGui::EndGroup();
-        
-        // Click handler
+
         if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(0)) {
-            // TODO: Video seçildi
+            if (MainWindow* mainWindow = GetMainWindow(parent)) {
+                mainWindow->SwitchToEditingScreen(video);
+            }
         }
-        
+
         // Context menu
         char popupID[64];
         snprintf(popupID, sizeof(popupID), "VideoContext##%zu", i);

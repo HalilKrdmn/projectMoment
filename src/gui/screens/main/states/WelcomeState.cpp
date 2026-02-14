@@ -1,5 +1,6 @@
-#include "gui/screens/states/WelcomeState.h"
-#include "gui/screens/MainScreen.h"
+#include "gui/screens/main/states/WelcomeState.h"
+#include "gui/screens/main/MainScreen.h"
+
 #include <algorithm>
 
 void WelcomeState::Draw(MainScreen* parent) {

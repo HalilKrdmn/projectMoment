@@ -26,20 +26,22 @@ set(LIBRARY_SOURCES
 )
 
 set(MEDIA_SOURCES
+        src/core/media/AudioAnalyzer.cpp
+        include/core/media/AudioAnalyzer.h
         src/core/import/VideoImportService.cpp
         include/core/import/VideoImportService.h
         src/core/media/MetadataEmbedder.cpp
         include/core/media/MetadataEmbedder.h
         src/core/media/ThumbnailService.cpp
         include/core/media/ThumbnailService.h
+        src/core/media/VideoPlayer.cpp
+        include/core/media/VideoPlayer.h
 )
 
 set(GUI_CORE_SOURCES
         src/gui/core/MainWindow.cpp
         include/gui/core/MainWindow.h
         include/gui/core/BaseScreen.h
-        src/gui/screens/MainScreen.cpp
-        include/gui/screens/MainScreen.h
         src/gui/widgets/FolderBrowser.cpp
         include/gui/widgets/FolderBrowser.h
         src/gui/utils/FormatUtils.cpp
@@ -48,15 +50,28 @@ set(GUI_CORE_SOURCES
         include/gui/utils/ThumbnailLoader.h
 )
 
-set(GUI_STATE_SOURCES
-        src/gui/screens/states/EmptyFolderState.cpp
-        include/gui/screens/states/EmptyFolderState.h
-        src/gui/screens/states/LoadingState.cpp
-        include/gui/screens/states/LoadingState.h
-        src/gui/screens/states/VideoListState.cpp
-        include/gui/screens/states/VideoListState.h
-        src/gui/screens/states/WelcomeState.cpp
-        include/gui/screens/states/WelcomeState.h
+set(GUI_MAIN_SCREENS_SOURCES
+        src/gui/screens/main/MainScreen.cpp
+        include/gui/screens/main/MainScreen.h
+
+        src/gui/screens/main/states/EmptyFolderState.cpp
+        include/gui/screens/main/states/EmptyFolderState.h
+        src/gui/screens/main/states/LoadingState.cpp
+        include/gui/screens/main/states/LoadingState.h
+        src/gui/screens/main/states/VideoListState.cpp
+        include/gui/screens/main/states/VideoListState.h
+        src/gui/screens/main/states/WelcomeState.cpp
+        include/gui/screens/main/states/WelcomeState.h
+)
+
+set(GUI_EDITING_SCREENS_SOURCES
+        src/gui/screens/editing/EditingScreen.cpp
+        include/gui/screens/editing/EditingScreen.h
+
+        src/gui/screens/editing/states/VideoEditState.cpp
+        include/gui/screens/editing/states/VideoEditState.h
+        src/gui/screens/editing/states/ExportState.cpp
+        include/gui/screens/editing/states/ExportState.h
 )
 
 add_executable(projectMoment
@@ -64,7 +79,8 @@ add_executable(projectMoment
         ${LIBRARY_SOURCES}
         ${MEDIA_SOURCES}
         ${GUI_CORE_SOURCES}
-        ${GUI_STATE_SOURCES}
+        ${GUI_MAIN_SCREENS_SOURCES}
+        ${GUI_EDITING_SCREENS_SOURCES}
 )
 
 target_include_directories(projectMoment PRIVATE
@@ -88,6 +104,7 @@ target_link_libraries(projectMoment PRIVATE
         glfw
         OpenGL::GL
         PkgConfig::FFMPEG
+        swresample
 )
 
 if(TARGET SQLite::SQLite3)

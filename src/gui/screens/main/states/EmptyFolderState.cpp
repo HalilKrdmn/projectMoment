@@ -1,5 +1,5 @@
-#include "gui/screens/states/EmptyFolderState.h"
-#include "gui/screens/MainScreen.h"
+#include "gui/screens/main/states/EmptyFolderState.h"
+#include "gui/screens/main/MainScreen.h"
 
 void EmptyFolderState::Draw(MainScreen* parent) {
     const ImVec2 avail = ImGui::GetContentRegionAvail();

@@ -1,9 +1,6 @@
 #pragma once
 
-#include <atomic>
-
 #include "data/VideoInfo.h"
-#include "core/library/VideoLibrary.h"
 #include "gui/core/BaseScreen.h"
 #include "gui/widgets/FolderBrowser.h"
 
@@ -11,19 +8,16 @@
 #include <chrono>
 #include <memory>
 #include <filesystem>
-#include <thread>
 
-#include "core/import/VideoImportService.h"
-
-class VideoLibrary;
 struct VideoInfo;
 
+class VideoLibrary;
 class WelcomeState;
 class LoadingState;
 class VideoListState;
 class EmptyFolderState;
 
-enum class ContentState {
+enum class MainScreenState {
     LOADING,
     WELCOME,
     EMPTY_FOLDER,
@@ -43,7 +37,7 @@ public:
     void StartLibraryLoad();
 
     // State management
-    void ChangeState(const ContentState state) { m_currentState = state; }
+    void ChangeState(const MainScreenState state) { m_currentState = state; }
     const char* GetCurrentWindowName() const;
 
     // Data access
@@ -56,7 +50,7 @@ public:
     FolderBrowser& GetFolderBrowser() { return m_folderBrowser; }
 private:
     // State
-    ContentState m_currentState = ContentState::WELCOME;
+    MainScreenState m_currentState = MainScreenState::WELCOME;
 
     // UI States
     std::unique_ptr<WelcomeState> m_welcomeState;

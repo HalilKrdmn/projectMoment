@@ -1,5 +1,7 @@
 #pragma once
 
+#include "gui/core/MainWindow.h"
+
 class MainScreen;
 
 class VideoListState {
@@ -14,6 +16,7 @@ private:
     bool m_thumbnailsLoaded = false;
 
     static void DrawHeader(MainScreen* parent);
-
     static void DrawVideoGrid(MainScreen* parent);
+
+    static MainWindow* GetMainWindow(const MainScreen* parent);
 };

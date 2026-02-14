@@ -1,9 +1,13 @@
-#include "gui/screens/MainScreen.h"
-#include "gui/screens/states/WelcomeState.h"
-#include "gui/screens/states/LoadingState.h"
-#include "gui/screens/states/VideoListState.h"
-#include "gui/screens/states/EmptyFolderState.h"
+#include "gui/screens/main/MainScreen.h"
+
+#include "gui/screens/main/states/WelcomeState.h"
+#include "gui/screens/main/states/LoadingState.h"
+#include "gui/screens/main/states/VideoListState.h"
+#include "gui/screens/main/states/EmptyFolderState.h"
+
 #include "core/library/LibraryLoader.h"
+#include "core/library/VideoLibrary.h"
+#include "core/import/VideoImportService.h"
 
 MainScreen::MainScreen(MainWindow* manager)
     : BaseScreen(manager){
@@ -22,7 +26,7 @@ void MainScreen::DetermineInitialState() {
     // Each time the screen appears, it checks the path in the config.
     // If no path is specified in the config, the screen is set to WelcomeState.
     if (!ValidateLibraryPath()) {
-        ChangeState(ContentState::WELCOME);
+        ChangeState(MainScreenState::WELCOME);
         return;
     }
 
@@ -64,14 +68,14 @@ void MainScreen::StartLibraryLoad() {
 
     if (!library && !config) {
         std::cerr << "[Error] VideoLibrary could not be initialized!" << std::endl;
-        ChangeState(ContentState::WELCOME);
+        ChangeState(MainScreenState::WELCOME);
         return;
     }
 
     // Clears the loading screen and prepares for loading.
     // (If there is nothing to load, the loading screen will not appear???)
     m_loadingState->Clear();
-    ChangeState(ContentState::LOADING);
+    ChangeState(MainScreenState::LOADING);
 
     // It takes the file path from the library path section in the config and moves it to the Loading screen.
     std::thread([this, library, config]() {
@@ -86,7 +90,7 @@ void MainScreen::StartLibraryLoad() {
         const auto videos = library->GetAllVideos();
         this->SetCurrentVideos(videos);
 
-        ChangeState(videos.empty() ? ContentState::EMPTY_FOLDER : ContentState::VIDEO_LIST);
+        ChangeState(videos.empty() ? MainScreenState::EMPTY_FOLDER : MainScreenState::VIDEO_LIST);
         std::cout << "[MainScreen] Loaded " << videos.size() << " videos" << std::endl;
     }).detach();
 }
@@ -105,16 +109,16 @@ void MainScreen::Draw() {
     ImGui::Begin(GetCurrentWindowName(), nullptr, flags);
 
     switch (m_currentState) {
-        case ContentState::WELCOME:
+        case MainScreenState::WELCOME:
             m_welcomeState->Draw(this);
             break;
-        case ContentState::LOADING:
+        case MainScreenState::LOADING:
             m_loadingState->Draw(this);
             break;
-        case ContentState::VIDEO_LIST:
+        case MainScreenState::VIDEO_LIST:
             m_videoListState->Draw(this);
             break;
-        case ContentState::EMPTY_FOLDER:
+        case MainScreenState::EMPTY_FOLDER:
             m_emptyFolderState->Draw(this);
             break;
     }
@@ -125,10 +129,10 @@ void MainScreen::Draw() {
 
 const char* MainScreen::GetCurrentWindowName() const {
     switch (m_currentState) {
-        case ContentState::WELCOME:       return "Welcome";
-        case ContentState::LOADING:       return "Loading";
-        case ContentState::VIDEO_LIST:    return "VideoList";
-        case ContentState::EMPTY_FOLDER:  return "EmptyFolder";
+        case MainScreenState::WELCOME:       return "Welcome";
+        case MainScreenState::LOADING:       return "Loading";
+        case MainScreenState::VIDEO_LIST:    return "VideoList";
+        case MainScreenState::EMPTY_FOLDER:  return "EmptyFolder";
         default:                          return "MainScreen";
     }
 }

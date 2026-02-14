@@ -1,5 +1,5 @@
-#include "gui/screens/states/LoadingState.h"
-#include "gui/screens/MainScreen.h"
+#include "gui/screens/main/states/LoadingState.h"
+#include "gui/screens/main/MainScreen.h"
 #include <sstream>
 #include <iomanip>
 

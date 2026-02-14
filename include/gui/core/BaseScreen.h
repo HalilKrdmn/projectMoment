@@ -4,11 +4,13 @@ class MainWindow;
 
 class BaseScreen {
 public:
-    explicit BaseScreen(MainWindow* window) : m_mainWindow(window) {}
+    explicit BaseScreen(MainWindow* window) : m_manager(window) {}
     virtual ~BaseScreen() = default;
 
     virtual void Draw() = 0;
 
+    MainWindow* GetManager() const { return m_manager; }
+
 protected:
-    MainWindow* m_mainWindow;
+    MainWindow* m_manager;
 };

@@ -1,6 +1,7 @@
 #include "gui/core/MainWindow.h"
 
-#include "gui/screens/MainScreen.h"
+#include "gui/screens/main/MainScreen.h"
+#include "gui/screens/editing/EditingScreen.h"
 
 #include <cstdio>
 
@@ -15,8 +16,7 @@ static void error_callback([[maybe_unused]] int error, const char* description) 
 
 MainWindow::MainWindow(const int width, const int height, const char* title) 
     : window(nullptr)
-      , m_currentScreen(nullptr)
-      , m_currentState(ApplicationState::MAIN_MENU) {
+      , m_currentState(ApplicationState::MAIN) {
     
     // GLFW error callback
     glfwSetErrorCallback(error_callback);
@@ -64,17 +64,15 @@ MainWindow::MainWindow(const int width, const int height, const char* title)
     ImGui_ImplOpenGL3_Init("#version 330");
 
     // Create first screen
-    SetApplicationState(ApplicationState::MAIN_MENU);
+    SetApplicationState(ApplicationState::MAIN);
 
     printf("MainWindow initialized successfully\n");
 }
 
 MainWindow::~MainWindow() {
     // Screen cleanup
-    if (m_currentScreen != nullptr) {
-        delete m_currentScreen;
-        m_currentScreen = nullptr;
-    }
+    if (m_mainScreen) delete m_mainScreen;
+    if (m_editingScreen) delete m_editingScreen;
 
     // ImGui cleanup
     ImGui_ImplOpenGL3_Shutdown();
@@ -130,11 +128,6 @@ int MainWindow::Run() const {
 }
 
 void MainWindow::SetApplicationState(const ApplicationState newState) {
-    // Old Screen cleanup
-    if (m_currentScreen != nullptr) {
-        delete m_currentScreen;
-        m_currentScreen = nullptr;
-    }
 
     m_currentState = newState;
 
@@ -144,8 +137,11 @@ void MainWindow::SetApplicationState(const ApplicationState newState) {
             m_currentScreen = new MainScreen(this);
             break;
 
-        case ApplicationState::MAIN_MENU:
-            m_currentScreen = new MainScreen(this);
+        case ApplicationState::MAIN:
+            if (!m_mainScreen) {
+                m_mainScreen = new MainScreen(this);
+            }
+            m_currentScreen = m_mainScreen;
             break;
 
         case ApplicationState::SETTINGS:
@@ -154,8 +150,10 @@ void MainWindow::SetApplicationState(const ApplicationState newState) {
             break;
 
         case ApplicationState::EDITING:
-            fprintf(stderr, "Editing screen not implemented yet\n");
-            m_currentScreen = new MainScreen(this);
+            if (!m_editingScreen) {
+                m_editingScreen = new EditingScreen(this);
+            }
+            m_currentScreen = m_editingScreen;
             break;
 
         default:
@@ -164,4 +162,14 @@ void MainWindow::SetApplicationState(const ApplicationState newState) {
     }
 
     printf("Application state changed to: %d\n", static_cast<int>(newState));
+}
+
+void MainWindow::SwitchToEditingScreen(const VideoInfo& video) {
+    // Store selected video
+    m_selectedVideo = video;
+
+    printf("[MainWindow] Switching to EDITING screen with video: %s\n", video.name.c_str());
+
+    // Switch state
+    SetApplicationState(ApplicationState::EDITING);
 }
