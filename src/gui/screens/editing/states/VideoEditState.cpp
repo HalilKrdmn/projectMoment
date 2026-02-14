@@ -8,6 +8,7 @@
 #include <iostream>
 
 #include "imgui.h"
+#include "gui/utils/FormatUtils.h"
 
 VideoEditState::~VideoEditState() {
 }
@@ -43,8 +44,8 @@ void VideoEditState::Draw(EditingScreen *parent) {
         }
     }
 
-    auto currentTime = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - m_lastFrameTime);
+    const auto currentTime = std::chrono::high_resolution_clock::now();
+    const auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - m_lastFrameTime);
     float deltaTime = duration.count() / 1000.0f;
     m_lastFrameTime = currentTime;
 
@@ -55,30 +56,15 @@ void VideoEditState::Draw(EditingScreen *parent) {
     m_playbackProgress = static_cast<float>(m_videoPlayer->GetProgress());
     m_isPlaying = m_videoPlayer->IsPlaying();
 
-
-    ImGui::Columns(2, "TopLayout", false);
-    ImGui::SetColumnWidth(0, ImGui::GetWindowWidth() * 0.75f);
-
-    {
-        DrawVideoPlayer();
-    }
-
-    ImGui::NextColumn();
-    {
-        DrawInfoCard(video);
-        ImGui::Spacing();
-        DrawControls(parent);
-    }
-
-    ImGui::Columns(1);
+    DrawInfoBar(video);
     ImGui::Spacing();
 
-    ImGui::Columns(2, "TimelineLayout", false);
-    ImGui::SetColumnWidth(0, ImGui::GetWindowWidth() * 1.0f);
+    // ✅ MIDDLE: Video Player
+    DrawVideoPlayer();
+    ImGui::Spacing();
 
+    // Draw timeline panel
     DrawTimeline(video);
-
-    ImGui::Columns(1);
 }
 
 
@@ -86,14 +72,14 @@ void VideoEditState::DrawVideoPlayer() const {
     ImGui::BeginChild("VideoPlayer", ImVec2(0, ImGui::GetContentRegionAvail().y * 0.75f), true);
 
     ImDrawList* drawList = ImGui::GetWindowDrawList();
-    ImVec2 pos = ImGui::GetCursorScreenPos();
-    ImVec2 size = ImGui::GetContentRegionAvail();
+    const ImVec2 pos = ImGui::GetCursorScreenPos();
+    const ImVec2 size = ImGui::GetContentRegionAvail();
     drawList->AddRectFilled(pos, ImVec2(pos.x + size.x, pos.y + size.y),
-                            IM_COL32(220, 80, 80, 255));
+                            IM_COL32(0, 0, 0, 0));
 
-    float availableHeight = size.y - 20;
-    float availableWidth = size.x - 20;
-    float videoAspect = (float)m_videoPlayer->GetWidth() / m_videoPlayer->GetHeight();
+    const float availableHeight = size.y - 20;
+    const float availableWidth = size.x - 20;
+    const float videoAspect = static_cast<float>(m_videoPlayer->GetWidth()) / m_videoPlayer->GetHeight();
 
     float displayHeight = availableHeight;
     float displayWidth = displayHeight * videoAspect;
@@ -103,7 +89,7 @@ void VideoEditState::DrawVideoPlayer() const {
         displayHeight = displayWidth / videoAspect;
     }
 
-    float offsetX = (size.x - displayWidth) / 2;
+    const float offsetX = (size.x - displayWidth) / 2;
     ImGui::SetCursorScreenPos(ImVec2(pos.x + offsetX, pos.y + 10));
     ImGui::Image(m_videoPlayer->GetFrameTexture(),
                 ImVec2(displayWidth, displayHeight),
@@ -116,28 +102,28 @@ void VideoEditState::DrawTimeline(const VideoInfo& video) {
     ImGui::BeginChild("Timeline", ImVec2(0, ImGui::GetContentRegionAvail().y), true);
 
     ImDrawList* drawList = ImGui::GetWindowDrawList();
-    ImVec2 containerPos = ImGui::GetCursorScreenPos();
-    ImVec2 containerSize = ImGui::GetContentRegionAvail();
+    const ImVec2 containerPos = ImGui::GetCursorScreenPos();
+    const ImVec2 containerSize = ImGui::GetContentRegionAvail();
 
     drawList->AddRectFilled(containerPos, ImVec2(containerPos.x + containerSize.x, containerPos.y + containerSize.y),
-                           IM_COL32(10, 10, 20, 255));
+                           IM_COL32(0, 0, 0, 0));
 
     if (!m_audioAnalyzer) {
         ImGui::EndChild();
         return;
     }
 
-    float topHeight = 50.0f;
+    constexpr float topHeight = 50.0f;
     DrawTimelineHeader(ImVec2(containerPos.x, containerPos.y), ImVec2(containerSize.x, topHeight));
 
-    const char* trackNames[] = {"Clip", "Main Audio", "Game Audio", "Microphone"};
-    float trackBoxHeight = (containerSize.y - topHeight) / 4.0f;
+    const float trackBoxHeight = (containerSize.y - topHeight) / 4.0f;
 
     for (int i = 0; i < 4; i++) {
-        float trackY = containerPos.y + topHeight + i * trackBoxHeight;
+        const char* trackNames[] = {"Clip", "Main Audio", "Game Audio", "Microphone"};
+        const float trackY = containerPos.y + topHeight + i * trackBoxHeight;
 
-        ImVec2 trackPos = ImVec2(containerPos.x, trackY);
-        ImVec2 trackSize = ImVec2(containerSize.x, trackBoxHeight);
+        const auto trackPos = ImVec2(containerPos.x, trackY);
+        const auto trackSize = ImVec2(containerSize.x, trackBoxHeight);
 
         if (i == 0) {
             DrawEmptyTrackBoxFull(trackPos, trackSize, trackNames[i]);
@@ -149,62 +135,101 @@ void VideoEditState::DrawTimeline(const VideoInfo& video) {
     ImGui::EndChild();
 }
 
-void VideoEditState::DrawTimelineHeader(ImVec2 pos, ImVec2 size) {
+void VideoEditState::DrawTimelineHeader(const ImVec2 pos, const ImVec2 size) {
     ImDrawList* drawList = ImGui::GetWindowDrawList();
 
     drawList->AddRectFilled(pos, ImVec2(pos.x + size.x, pos.y + size.y),
-                           IM_COL32(0, 0, 0, 200));
+                           IM_COL32(0, 0, 0, 0));
 
-    double currentTime = m_videoPlayer->GetCurrentTime();
-    double duration = m_videoPlayer->GetDuration();
 
-    int currentMin = (int)currentTime / 60;
-    int currentSec = (int)currentTime % 60;
-    int durationMin = (int)duration / 60;
-    int durationSec = (int)duration % 60;
+    // Calculates the duration of the video and displays it on the screen.
+    const double currentTime = m_videoPlayer->GetCurrentTime();
+    const double duration = m_videoPlayer->GetDuration();
 
-    char timeStr[32];
-    snprintf(timeStr, sizeof(timeStr), "%02d:%02d / %02d:%02d",
-             currentMin, currentSec, durationMin, durationSec);
+    const std::string currentTimeStr = FormatUtils::FormatDuration(currentTime);
+    const std::string durationStr = FormatUtils::FormatDuration(duration);
+    const std::string timeStr = currentTimeStr + " / " + durationStr;
 
     drawList->AddText(ImVec2(pos.x + 10, pos.y + 5),
-                     IM_COL32(255, 255, 255, 255), timeStr);
+                     IM_COL32(255, 255, 255, 255), timeStr.c_str());
 
-    ImGui::SetCursorScreenPos(ImVec2(pos.x + size.x - 200, pos.y + 5));
+
+    // Load, Play/Pause/Restart and Next button: Calculates the width of the buttons and places them exactly in the center
+    constexpr float buttonsTotalWidth = (50 + 5) + (50 + 5) + 50;
+    const float centerX = pos.x + (size.x - buttonsTotalWidth) / 2.0f;
+
+    ImGui::SetCursorScreenPos(ImVec2(centerX, pos.y + 5));
     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.2f, 0.2f, 0.3f, 0.8f));
 
-    if (ImGui::Button("Play", ImVec2(50, 35))) {
-        m_videoPlayer->Play();
-        m_isPlaying = true;
+
+    if (ImGui::Button("Prev", ImVec2(50, 35))) {
+        // TODO: Load previous video
     }
-    ImGui::SameLine(0, 5);
-    if (ImGui::Button("Pause", ImVec2(50, 35))) {
-        m_videoPlayer->Pause();
-        m_isPlaying = false;
+    ImGui::SameLine(0, 3);
+
+
+    const char* playPauseLabel;
+    if (m_playbackProgress >= 1.0f) {
+        playPauseLabel = "Restart";
+    } else {
+        playPauseLabel = m_isPlaying ? "Pause" : "Play";
     }
-    ImGui::SameLine(0, 5);
-    if (ImGui::Button("Stop", ImVec2(50, 35))) {
-        m_videoPlayer->Stop();
-        m_isPlaying = false;
-        m_playbackProgress = 0.0f;
+
+    if (ImGui::Button(playPauseLabel, ImVec2(50, 35))) {
+        if (m_playbackProgress >= 1.0f) {
+            m_videoPlayer->Stop();
+            m_playbackProgress = 0.0f;
+            m_videoPlayer->Play();
+            m_isPlaying = true;
+        } else if (m_isPlaying) {
+            m_videoPlayer->Pause();
+            m_isPlaying = false;
+        } else {
+            m_videoPlayer->Play();
+            m_isPlaying = true;
+        }
+    }
+    ImGui::SameLine(0, 3);
+
+
+    if (ImGui::Button("Next", ImVec2(50, 35))) {
+        // TODO: Load next video
+    }
+    ImGui::PopStyleColor();
+
+    // Export button: Calculates the width of the buttons and places them on the far right.
+    constexpr float exportButtonWidth = 55;
+    const float exportX = pos.x + size.x - (exportButtonWidth + 3 + 50) - 10;
+
+    ImGui::SetCursorScreenPos(ImVec2(exportX, pos.y + 5));
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.3f, 0.5f, 0.3f, 0.8f));
+
+    if (ImGui::Button("📤 Export", ImVec2(exportButtonWidth, 35))) {
+        // TODO: Export
+    }
+    ImGui::SameLine(0, 3);
+
+    if (ImGui::Button("⋯", ImVec2(50, 35))) {
+        // TODO: Menu
     }
 
     ImGui::PopStyleColor();
 }
 
-void VideoEditState::DrawEmptyTrackBoxFull(const ImVec2 pos, ImVec2 size, const char* label) const {
+void VideoEditState::DrawEmptyTrackBoxFull(const ImVec2 pos, const ImVec2 size, const char* label) const {
     ImDrawList* drawList = ImGui::GetWindowDrawList();
 
+    // Background
     drawList->AddRectFilled(pos, ImVec2(pos.x + size.x, pos.y + size.y),
                            IM_COL32(20, 20, 40, 255));
 
     drawList->AddText(ImVec2(pos.x + 15, pos.y + size.y / 2 - 8),
                      IM_COL32(200, 200, 200, 255), label);
 
-    float labelWidth = 100.0f;
-    float waveStartX = pos.x + labelWidth;
-    float waveWidth = size.x - labelWidth;
-    float centerY = pos.y + size.y / 2;
+    constexpr float labelWidth = 100.0f;
+    const float waveStartX = pos.x + labelWidth;
+    const float waveWidth = size.x - labelWidth;
+    const float centerY = pos.y + size.y / 2;
 
     drawList->AddLine(
         ImVec2(waveStartX, centerY),
@@ -230,14 +255,14 @@ void VideoEditState::DrawEmptyTrackBoxFull(const ImVec2 pos, ImVec2 size, const 
     ImGui::InvisibleButton("##EmptyTrack", ImVec2(waveWidth, size.y));
 
     if (ImGui::IsItemActive() && ImGui::IsMouseDragging(0)) {
-        float mouseX = ImGui::GetMousePos().x - waveStartX;
+        const float mouseX = ImGui::GetMousePos().x - waveStartX;
         float clickProgress = mouseX / waveWidth;
         clickProgress = std::max(0.0f, std::min(1.0f, clickProgress));
 
         m_videoPlayer->Seek(clickProgress * m_videoPlayer->GetDuration());
         m_videoPlayer->Play();
     } else if (ImGui::IsItemClicked()) {
-        float mouseX = ImGui::GetMousePos().x - waveStartX;
+        const float mouseX = ImGui::GetMousePos().x - waveStartX;
         float clickProgress = mouseX / waveWidth;
         clickProgress = std::max(0.0f, std::min(1.0f, clickProgress));
 
@@ -245,7 +270,7 @@ void VideoEditState::DrawEmptyTrackBoxFull(const ImVec2 pos, ImVec2 size, const 
     }
 }
 
-void VideoEditState::DrawTrackBoxFull(ImVec2 pos, ImVec2 size, const char* label, const int trackIndex) const {
+void VideoEditState::DrawTrackBoxFull(const ImVec2 pos, const ImVec2 size, const char* label, const int trackIndex) const {
     ImDrawList* drawList = ImGui::GetWindowDrawList();
 
     // Background
@@ -265,22 +290,22 @@ void VideoEditState::DrawTrackBoxFull(ImVec2 pos, ImVec2 size, const char* label
     }
 
     const auto& waveform = m_audioAnalyzer->GetWaveform(trackIndex);
-    int totalSeconds = m_audioAnalyzer->GetTotalSeconds();
+    const int totalSeconds = m_audioAnalyzer->GetTotalSeconds();
     if (totalSeconds <= 0) return;
 
     drawList->AddText(ImVec2(pos.x + 15, pos.y + size.y / 2 - 8),
                      IM_COL32(200, 200, 200, 255), label);
 
-    float labelWidth = 100.0f;
-    float waveStartX = pos.x + labelWidth;
-    float waveWidth = size.x - labelWidth;
-    float pixelWidth = waveWidth / (float)totalSeconds;
-    float centerY = pos.y + size.y / 2;
+    constexpr float labelWidth = 100.0f;
+    const float waveStartX = pos.x + labelWidth;
+    const float waveWidth = size.x - labelWidth;
+    const float pixelWidth = waveWidth / static_cast<float>(totalSeconds);
+    const float centerY = pos.y + size.y / 2;
 
-    for (int second = 0; second < (int)waveform.size(); second++) {
-        float value = waveform[second];
-        float barHeight = (size.y / 2) * value;
-        float barX = waveStartX + second * pixelWidth;
+    for (int second = 0; second < static_cast<int>(waveform.size()); second++) {
+        const float value = waveform[second];
+        const float barHeight = (size.y / 2) * value;
+        const float barX = waveStartX + second * pixelWidth;
 
         ImU32 color;
         if (trackIndex == 0) color = IM_COL32(100, 200, 255, 255);  // Cyan
@@ -320,14 +345,14 @@ void VideoEditState::DrawTrackBoxFull(ImVec2 pos, ImVec2 size, const char* label
                           ImVec2(waveWidth, size.y));
 
     if (ImGui::IsItemActive() && ImGui::IsMouseDragging(0)) {
-        float mouseX = ImGui::GetMousePos().x - waveStartX;
+        const float mouseX = ImGui::GetMousePos().x - waveStartX;
         float clickProgress = mouseX / waveWidth;
         clickProgress = std::max(0.0f, std::min(1.0f, clickProgress));
 
         m_videoPlayer->Seek(clickProgress * m_videoPlayer->GetDuration());
         m_videoPlayer->Play();
     } else if (ImGui::IsItemClicked()) {
-        float mouseX = ImGui::GetMousePos().x - waveStartX;
+        const float mouseX = ImGui::GetMousePos().x - waveStartX;
         float clickProgress = mouseX / waveWidth;
         clickProgress = std::max(0.0f, std::min(1.0f, clickProgress));
 
@@ -335,67 +360,8 @@ void VideoEditState::DrawTrackBoxFull(ImVec2 pos, ImVec2 size, const char* label
     }
 }
 
-void VideoEditState::DrawInfoCard(const VideoInfo& video) {
-    ImGui::BeginChild("VideoInfo", ImVec2(0, ImGui::GetContentRegionAvail().y * 0.50f), true);
-
-    ImDrawList* drawList = ImGui::GetWindowDrawList();
-    ImVec2 pos = ImGui::GetCursorScreenPos();
-    ImVec2 size = ImGui::GetContentRegionAvail();
-
-    // Background green
-    drawList->AddRectFilled(pos, ImVec2(pos.x + size.x, pos.y + size.y),
-                            IM_COL32(100, 200, 100, 255));
-
-    // Border
-    drawList->AddRect(pos, ImVec2(pos.x + size.x, pos.y + size.y),
-                     IM_COL32(80, 180, 80, 255), 2.0f);
-
-    // Title
-    drawList->AddText(ImVec2(pos.x + 8, pos.y + 10),
-                     IM_COL32(0, 0, 0, 255), "Info");
-
-    ImVec2 contentPos = ImVec2(pos.x + 8, pos.y + 35);
-    float textY = contentPos.y;
-
-    // Name
-    drawList->AddText(ImVec2(contentPos.x, textY),
-                     IM_COL32(0, 0, 0, 255), "Name:");
-    std::string shortName = video.name;
-    if (shortName.length() > 12) shortName = shortName.substr(0, 12) + "...";
-    drawList->AddText(ImVec2(contentPos.x, textY + 12),
-                     IM_COL32(30, 30, 30, 255), shortName.c_str());
-    textY += 30;
-
-    // Duration
-    char durationStr[40];
-    snprintf(durationStr, sizeof(durationStr), "Dur: %.1fs",
-             m_videoPlayer->GetDuration());
-    drawList->AddText(ImVec2(contentPos.x, textY),
-                     IM_COL32(0, 0, 0, 255), durationStr);
-    textY += 20;
-
-    // Resolution
-    char resStr[32];
-    snprintf(resStr, sizeof(resStr), "%dx%d",
-             m_videoPlayer->GetWidth(), m_videoPlayer->GetHeight());
-    drawList->AddText(ImVec2(contentPos.x, textY),
-                     IM_COL32(0, 0, 0, 255), resStr);
-    textY += 20;
-
-    // Tracks
-    if (m_audioAnalyzer) {
-        const auto& tracks = m_audioAnalyzer->GetTracks();
-        char trackStr[32];
-        snprintf(trackStr, sizeof(trackStr), "Tracks: %zu", tracks.size());
-        drawList->AddText(ImVec2(contentPos.x, textY),
-                         IM_COL32(0, 0, 0, 255), trackStr);
-    }
-
-    ImGui::EndChild();
-}
-
-void VideoEditState::DrawControls(EditingScreen* parent) {
-    ImGui::BeginChild("ExportButtons", ImVec2(0, ImGui::GetContentRegionAvail().y * 0.45f), true);
+void VideoEditState::DrawInfoBar(const VideoInfo& video) {
+    ImGui::BeginChild("InfoBar", ImVec2(0, 40), true);
 
     ImDrawList* drawList = ImGui::GetWindowDrawList();
     ImVec2 pos = ImGui::GetCursorScreenPos();
@@ -405,24 +371,27 @@ void VideoEditState::DrawControls(EditingScreen* parent) {
     drawList->AddRectFilled(pos, ImVec2(pos.x + size.x, pos.y + size.y),
                            IM_COL32(40, 40, 80, 255));
 
-    // Buttons
-    ImGui::SetCursorScreenPos(ImVec2(pos.x + 10, pos.y + 10));
-    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.3f, 0.5f, 0.3f, 0.8f));
+    float textX = pos.x + 10;
+    float textY = pos.y + 10;
 
-    float buttonWidth = size.x - 20;
+    // 1. File Path
+    std::string pathLabel = "📁 " + video.filePathString;
+    if (pathLabel.length() > 50) pathLabel = "📁 ..." + video.filePathString.substr(video.filePathString.length() - 40);
+    drawList->AddText(ImVec2(textX, textY), IM_COL32(200, 200, 200, 255), pathLabel.c_str());
+    textX += 350;
 
-    if (ImGui::Button("📤 Export", ImVec2(buttonWidth, 40))) {
-        if (parent) {
-            parent->ChangeState(EditingScreenState::EXPORT);
-        }
-    }
+    // 2. File Size
+    char sizeStr[64];
+    snprintf(sizeStr, sizeof(sizeStr), "📦 %.1f MB", video.fileSize / (1024.0 * 1024.0));
+    drawList->AddText(ImVec2(textX, textY), IM_COL32(150, 200, 150, 255), sizeStr);
+    textX += 150;
 
-    if (ImGui::Button("◀ Back", ImVec2(buttonWidth, 40))) {
-        if (parent) {
-            parent->GetManager()->SetApplicationState(ApplicationState::MAIN);
-        }
-    }
+    // 3. Resolution
+    char resStr[64];
+    snprintf(resStr, sizeof(resStr), "📐 %dx%d", m_videoPlayer->GetWidth(), m_videoPlayer->GetHeight());
+    drawList->AddText(ImVec2(textX, textY), IM_COL32(150, 150, 200, 255), resStr);
+    textX += 150;
 
-    ImGui::PopStyleColor();
+
     ImGui::EndChild();
 }

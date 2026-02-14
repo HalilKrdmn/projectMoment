@@ -42,6 +42,6 @@ const char* EditingScreen::GetCurrentWindowName() const {
     switch (m_currentState) {
         case EditingScreenState::VIDEO_EDIT:        return "VideoEdit";
         case EditingScreenState::EXPORT:            return "Export";
-        default:                              return "EditingScreen";
+        default:                                    return "EditingScreen";
     }
 }
