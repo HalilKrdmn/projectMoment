@@ -15,15 +15,15 @@ public:
     VideoEditState() = default;
     ~VideoEditState();
 
-    void Draw(EditingScreen *parent);
+    void Draw(const EditingScreen *parent);
 
 private:
     void DrawVideoPlayer() const;
     void DrawTimeline(const VideoInfo& video);
     void DrawTimelineHeader(ImVec2 pos, ImVec2 size);
-    void DrawEmptyTrackBoxFull(ImVec2 pos, ImVec2 size, const char* label) const;
+    void DrawEmptyTrackBoxFull(ImVec2 pos, ImVec2 size, const char* label);
     void DrawTrackBoxFull(ImVec2 pos, ImVec2 size, const char* label, int trackIndex) const;
-    void DrawInfoBar(const VideoInfo& video);
+    void DrawInfoBar(const VideoInfo& video) const;
 
     std::unique_ptr<VideoPlayer> m_videoPlayer;
     std::unique_ptr<AudioAnalyzer> m_audioAnalyzer;
@@ -33,4 +33,6 @@ private:
     
     float m_playbackProgress = 0.0f;
     bool m_isPlaying = false;
+    float m_selectStart = 0.0f;
+    float m_selectEnd = 1.0f;
 };

@@ -1,19 +1,18 @@
-#include "gui/screens/editing/states/VideoEditState.h"
-
-#include "gui/screens/editing/EditingScreen.h"
+#include <gui/screens/editing/states/VideoEditState.h>
 
 #include "gui/core/MainWindow.h"
+#include "gui/screens/editing/EditingScreen.h"
+#include "gui/utils/FormatUtils.h"
 
 #include <chrono>
 #include <iostream>
 
 #include "imgui.h"
-#include "gui/utils/FormatUtils.h"
 
 VideoEditState::~VideoEditState() {
 }
 
-void VideoEditState::Draw(EditingScreen *parent) {
+void VideoEditState::Draw(const EditingScreen *parent) {
     if (!parent) return;
 
     const VideoInfo& video = parent->GetManager()->GetSelectedVideo();
@@ -116,20 +115,27 @@ void VideoEditState::DrawTimeline(const VideoInfo& video) {
     constexpr float topHeight = 50.0f;
     DrawTimelineHeader(ImVec2(containerPos.x, containerPos.y), ImVec2(containerSize.x, topHeight));
 
+    const char* trackNames[] = {"Clip", "Main Audio", "Game Audio", "Microphone"};
     const float trackBoxHeight = (containerSize.y - topHeight) / 4.0f;
 
-    for (int i = 0; i < 4; i++) {
-        const char* trackNames[] = {"Clip", "Main Audio", "Game Audio", "Microphone"};
+    // Draw audio tracks first
+    for (int i = 1; i < 4; i++) {
         const float trackY = containerPos.y + topHeight + i * trackBoxHeight;
 
         const auto trackPos = ImVec2(containerPos.x, trackY);
         const auto trackSize = ImVec2(containerSize.x, trackBoxHeight);
 
-        if (i == 0) {
-            DrawEmptyTrackBoxFull(trackPos, trackSize, trackNames[i]);
-        } else {
-            DrawTrackBoxFull(trackPos, trackSize, trackNames[i], i - 1);
-        }
+        DrawTrackBoxFull(trackPos, trackSize, trackNames[i], i - 1);
+    }
+
+    // Draw Clip track last (On top)
+    {
+        const float trackY = containerPos.y + topHeight + 0 * trackBoxHeight;
+
+        const auto trackPos = ImVec2(containerPos.x, trackY);
+        const auto trackSize = ImVec2(containerSize.x, trackBoxHeight);
+
+        DrawEmptyTrackBoxFull(trackPos, trackSize, trackNames[0]);
     }
 
     ImGui::EndChild();
@@ -216,21 +222,24 @@ void VideoEditState::DrawTimelineHeader(const ImVec2 pos, const ImVec2 size) {
     ImGui::PopStyleColor();
 }
 
-void VideoEditState::DrawEmptyTrackBoxFull(const ImVec2 pos, const ImVec2 size, const char* label) const {
+void VideoEditState::DrawEmptyTrackBoxFull(const ImVec2 pos, const ImVec2 size, const char* label) {
     ImDrawList* drawList = ImGui::GetWindowDrawList();
 
     // Background
     drawList->AddRectFilled(pos, ImVec2(pos.x + size.x, pos.y + size.y),
                            IM_COL32(20, 20, 40, 255));
 
+    // Background label
     drawList->AddText(ImVec2(pos.x + 15, pos.y + size.y / 2 - 8),
                      IM_COL32(200, 200, 200, 255), label);
 
+    // Waveform area
     constexpr float labelWidth = 100.0f;
     const float waveStartX = pos.x + labelWidth;
     const float waveWidth = size.x - labelWidth;
     const float centerY = pos.y + size.y / 2;
 
+    // Draw nothing (empty waveform)
     drawList->AddLine(
         ImVec2(waveStartX, centerY),
         ImVec2(pos.x + size.x, centerY),
@@ -238,18 +247,127 @@ void VideoEditState::DrawEmptyTrackBoxFull(const ImVec2 pos, const ImVec2 size, 
         1.0f
     );
 
-    const float x = waveStartX + (waveWidth * m_playbackProgress);
+    // Selection handles on Clip bar
+    const float selectStartX = waveStartX + (waveWidth * m_selectStart);
+    const float selectEndX = waveStartX + (waveWidth * m_selectEnd);
+
+    // Darkened regions (left of start)
+    if (m_selectStart > 0) {
+        drawList->AddRectFilled(
+            ImVec2(waveStartX, pos.y),
+            ImVec2(selectStartX, pos.y + size.y),
+            IM_COL32(0, 0, 0, 150)
+        );
+    }
+
+    // Darkened regions (right of end)
+    if (m_selectEnd < 1.0f) {
+        drawList->AddRectFilled(
+            ImVec2(selectEndX, pos.y),
+            ImVec2(waveStartX + waveWidth, pos.y + size.y),
+            IM_COL32(0, 0, 0, 150)
+        );
+    }
+
+
+    // LEFT HANDLE
+    // top triangle - pointing UP
+    constexpr float handleSize = 10.0f;
+    const ImVec2 leftHandlePoints[] = {
+        ImVec2(selectStartX, pos.y + handleSize),    // Top point
+        ImVec2(selectStartX - handleSize, pos.y),      // Left point
+        ImVec2(selectStartX + handleSize, pos.y)       // Right point
+    };
+    drawList->AddTriangleFilled(leftHandlePoints[0], leftHandlePoints[1], leftHandlePoints[2],
+                               IM_COL32(0, 255, 255, 255));
+
+    // Bottom triangle (inverted - pointing DOWN)
+    const ImVec2 leftHandlePointsBottom[] = {
+        ImVec2(selectStartX, pos.y + size.y - handleSize),      // Bottom point
+        ImVec2(selectStartX - handleSize, pos.y + size.y),      // Left point
+        ImVec2(selectStartX + handleSize, pos.y + size.y)       // Right point
+    };
+    drawList->AddTriangleFilled(leftHandlePointsBottom[0], leftHandlePointsBottom[1], leftHandlePointsBottom[2],
+                               IM_COL32(0, 255, 255, 255));
+
+    // Connecting line between triangles
     drawList->AddLine(
-        ImVec2(x, pos.y),
-        ImVec2(x, pos.y + size.y),
+        ImVec2(selectStartX, pos.y),
+        ImVec2(selectStartX, pos.y + size.y),
+        IM_COL32(0, 255, 255, 200),
+        3.0f
+    );
+
+
+
+    // RIGHT HANDLE
+    // top triangle - pointing UP
+    const ImVec2 rightHandlePoints[] = {
+        ImVec2(selectEndX, pos.y + handleSize),      // Top point (up)
+        ImVec2(selectEndX - handleSize, pos.y),        // Left point
+        ImVec2(selectEndX + handleSize, pos.y)         // Right point
+    };
+    drawList->AddTriangleFilled(rightHandlePoints[0], rightHandlePoints[1], rightHandlePoints[2],
+                               IM_COL32(0, 255, 255, 255));
+
+    // Bottom triangle (inverted - pointing DOWN)
+    const ImVec2 rightHandlePointsBottom[] = {
+        ImVec2(selectEndX, pos.y + size.y - handleSize),        // Bottom point (down)
+        ImVec2(selectEndX - handleSize, pos.y + size.y),        // Left point
+        ImVec2(selectEndX + handleSize, pos.y + size.y)         // Right point
+    };
+    drawList->AddTriangleFilled(rightHandlePointsBottom[0], rightHandlePointsBottom[1], rightHandlePointsBottom[2],
+                               IM_COL32(0, 255, 255, 255));
+
+    // Connecting line between triangles
+    drawList->AddLine(
+        ImVec2(selectEndX, pos.y),
+        ImVec2(selectEndX, pos.y + size.y),
+        IM_COL32(0, 255, 255, 200),
+        3.0f
+    );
+
+
+    // Play line
+    const float playlineX = waveStartX + (waveWidth * m_playbackProgress);
+    const float bottomY = ImGui::GetWindowPos().y + ImGui::GetWindowSize().y;
+
+    drawList->AddLine(
+        ImVec2(playlineX, pos.y),
+        ImVec2(playlineX, bottomY),
         IM_COL32(255, 255, 0, 255),
-        2.0f
+        3.0f
     );
 
     // Border
     drawList->AddRect(pos, ImVec2(pos.x + size.x, pos.y + size.y),
                      IM_COL32(60, 60, 100, 255), 1.0f);
 
+
+
+    // Bigger handle targets (30px wide, 50px tall)
+    // Draggable left handle
+    ImGui::SetCursorScreenPos(ImVec2(selectStartX - 15, pos.y - 25));
+    ImGui::InvisibleButton("##ClipSelectStartHandle", ImVec2(30, 50));
+
+    if (ImGui::IsItemActive() && ImGui::IsMouseDragging(0)) {
+        const float mouseX = ImGui::GetMousePos().x - waveStartX;
+        const float newProgress = mouseX / waveWidth;
+        m_selectStart = std::max(0.0f, std::min(newProgress, m_selectEnd - 0.01f));
+    }
+
+    // Draggable right handle
+    ImGui::SetCursorScreenPos(ImVec2(selectEndX - 15, pos.y - 25));
+    ImGui::InvisibleButton("##ClipSelectEndHandle", ImVec2(30, 50));
+
+    if (ImGui::IsItemActive() && ImGui::IsMouseDragging(0)) {
+        const float mouseX = ImGui::GetMousePos().x - waveStartX;
+        const float newProgress = mouseX / waveWidth;
+        m_selectEnd = std::max(m_selectStart + 0.01f, std::min(1.0f, newProgress));
+    }
+
+
+    // TODO: REPAIR SEEK
     // Click to seek
     ImGui::SetCursorScreenPos(ImVec2(waveStartX, pos.y));
     ImGui::InvisibleButton("##EmptyTrack", ImVec2(waveWidth, size.y));
@@ -260,13 +378,15 @@ void VideoEditState::DrawEmptyTrackBoxFull(const ImVec2 pos, const ImVec2 size, 
         clickProgress = std::max(0.0f, std::min(1.0f, clickProgress));
 
         m_videoPlayer->Seek(clickProgress * m_videoPlayer->GetDuration());
-        m_videoPlayer->Play();
+        m_videoPlayer->Pause();
+        m_videoPlayer->Update(0.3f);
     } else if (ImGui::IsItemClicked()) {
         const float mouseX = ImGui::GetMousePos().x - waveStartX;
         float clickProgress = mouseX / waveWidth;
         clickProgress = std::max(0.0f, std::min(1.0f, clickProgress));
 
         m_videoPlayer->Seek(clickProgress * m_videoPlayer->GetDuration());
+        m_videoPlayer->Update(0.3f);
     }
 }
 
@@ -282,6 +402,7 @@ void VideoEditState::DrawTrackBoxFull(const ImVec2 pos, const ImVec2 size, const
                          IM_COL32(100, 100, 150, 255), 1.0f);
         return;
     }
+
 
     if (const auto& tracks = m_audioAnalyzer->GetTracks(); trackIndex < 0 || trackIndex >= static_cast<int>(tracks.size())) {
         drawList->AddRect(pos, ImVec2(pos.x + size.x, pos.y + size.y),
@@ -308,18 +429,19 @@ void VideoEditState::DrawTrackBoxFull(const ImVec2 pos, const ImVec2 size, const
         const float barX = waveStartX + second * pixelWidth;
 
         ImU32 color;
-        if (trackIndex == 0) color = IM_COL32(100, 200, 255, 255);  // Cyan
-        else if (trackIndex == 1) color = IM_COL32(255, 150, 100, 255);  // Orange
-        else color = IM_COL32(255, 200, 100, 255);  // Yellow
+        if (trackIndex == 0) color = IM_COL32(100, 200, 255, 255);           // Cyan
+        else if (trackIndex == 1) color = IM_COL32(255, 150, 100, 255);      // Orange
+        else color = IM_COL32(255, 200, 100, 255);                           // Yellow
 
-        // Top bar (center up)
+
+        // Top bar
         drawList->AddRectFilled(
             ImVec2(barX, centerY - barHeight),
             ImVec2(barX + pixelWidth - 1, centerY),
             color
         );
 
-        // Bottom bar (center down)
+        // Bottom bar
         drawList->AddRectFilled(
             ImVec2(barX, centerY),
             ImVec2(barX + pixelWidth - 1, centerY + barHeight),
@@ -327,18 +449,35 @@ void VideoEditState::DrawTrackBoxFull(const ImVec2 pos, const ImVec2 size, const
         );
     }
 
-    const float x = waveStartX + (waveWidth * m_playbackProgress);
-    drawList->AddLine(
-        ImVec2(x, pos.y),
-        ImVec2(x, pos.y + size.y),
-        IM_COL32(255, 255, 0, 255),
-        2.0f
-    );
+
+    const float selectStartX = waveStartX + (waveWidth * m_selectStart);
+    const float selectEndX = waveStartX + (waveWidth * m_selectEnd);
+
+    // Darkened regions (left of start)
+    if (m_selectStart > 0) {
+        drawList->AddRectFilled(
+            ImVec2(waveStartX, pos.y),
+            ImVec2(selectStartX, pos.y + size.y),
+            IM_COL32(0, 0, 0, 150)
+        );
+    }
+
+    // Darkened regions (right of end)
+    if (m_selectEnd < 1.0f) {
+        drawList->AddRectFilled(
+            ImVec2(selectEndX, pos.y),
+            ImVec2(waveStartX + waveWidth, pos.y + size.y),
+            IM_COL32(0, 0, 0, 150)
+        );
+    }
+
 
     // Border
     drawList->AddRect(pos, ImVec2(pos.x + size.x, pos.y + size.y),
                      IM_COL32(60, 60, 100, 255), 1.0f);
 
+
+    // TODO: REPAIR SEEK
     // Click and drag
     ImGui::SetCursorScreenPos(ImVec2(waveStartX, pos.y));
     ImGui::InvisibleButton(("##TrackBox" + std::to_string(trackIndex)).c_str(),
@@ -350,48 +489,49 @@ void VideoEditState::DrawTrackBoxFull(const ImVec2 pos, const ImVec2 size, const
         clickProgress = std::max(0.0f, std::min(1.0f, clickProgress));
 
         m_videoPlayer->Seek(clickProgress * m_videoPlayer->GetDuration());
-        m_videoPlayer->Play();
+        m_videoPlayer->Pause();
+        m_videoPlayer->Update(0.033f);
     } else if (ImGui::IsItemClicked()) {
         const float mouseX = ImGui::GetMousePos().x - waveStartX;
         float clickProgress = mouseX / waveWidth;
         clickProgress = std::max(0.0f, std::min(1.0f, clickProgress));
 
         m_videoPlayer->Seek(clickProgress * m_videoPlayer->GetDuration());
+        m_videoPlayer->Update(0.033f);
     }
 }
 
-void VideoEditState::DrawInfoBar(const VideoInfo& video) {
+
+
+void VideoEditState::DrawInfoBar(const VideoInfo& video) const {
     ImGui::BeginChild("InfoBar", ImVec2(0, 40), true);
 
     ImDrawList* drawList = ImGui::GetWindowDrawList();
-    ImVec2 pos = ImGui::GetCursorScreenPos();
-    ImVec2 size = ImGui::GetContentRegionAvail();
+    const ImVec2 pos = ImGui::GetCursorScreenPos();
+    const ImVec2 size = ImGui::GetContentRegionAvail();
 
     // Background
     drawList->AddRectFilled(pos, ImVec2(pos.x + size.x, pos.y + size.y),
                            IM_COL32(40, 40, 80, 255));
 
     float textX = pos.x + 10;
-    float textY = pos.y + 10;
+    const float textY = pos.y + 10;
 
-    // 1. File Path
-    std::string pathLabel = "📁 " + video.filePathString;
-    if (pathLabel.length() > 50) pathLabel = "📁 ..." + video.filePathString.substr(video.filePathString.length() - 40);
+    // 1. File Name
+    const std::string pathLabel = "Nane: " + video.name;
     drawList->AddText(ImVec2(textX, textY), IM_COL32(200, 200, 200, 255), pathLabel.c_str());
     textX += 350;
 
     // 2. File Size
     char sizeStr[64];
-    snprintf(sizeStr, sizeof(sizeStr), "📦 %.1f MB", video.fileSize / (1024.0 * 1024.0));
+    snprintf(sizeStr, sizeof(sizeStr), "Size: %.1f MB", video.fileSize / (1024.0 * 1024.0));
     drawList->AddText(ImVec2(textX, textY), IM_COL32(150, 200, 150, 255), sizeStr);
     textX += 150;
 
     // 3. Resolution
     char resStr[64];
-    snprintf(resStr, sizeof(resStr), "📐 %dx%d", m_videoPlayer->GetWidth(), m_videoPlayer->GetHeight());
+    snprintf(resStr, sizeof(resStr), "Resolution: %dx%d", m_videoPlayer->GetWidth(), m_videoPlayer->GetHeight());
     drawList->AddText(ImVec2(textX, textY), IM_COL32(150, 150, 200, 255), resStr);
-    textX += 150;
-
 
     ImGui::EndChild();
 }
