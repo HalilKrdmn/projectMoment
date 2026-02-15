@@ -1,7 +1,7 @@
 #include "gui/screens/editing/EditingScreen.h"
 
 #include "gui/screens/editing/states/VideoEditState.h"
-#include "gui/screens/editing/states/ExportState.h"
+#include "gui/screens/editing/ExportWidget.h"
 
 #include "imgui.h"
 
@@ -10,7 +10,7 @@ EditingScreen::EditingScreen(MainWindow *manager)
 
     // Create states
     m_videoEditState = std::make_unique<VideoEditState>();
-    m_exportState = std::make_unique<ExportState>();
+    m_exportWidget = std::make_unique<ExportWidget>();
 
 }
 
@@ -25,23 +25,17 @@ void EditingScreen::Draw() {
     ImGui::SetNextWindowSize(viewport->WorkSize);
 
     ImGui::Begin(GetCurrentWindowName(), nullptr, flags);
-
-    switch (m_currentState) {
-        case EditingScreenState::VIDEO_EDIT:
-            m_videoEditState->Draw(this);
-            break;
-        case EditingScreenState::EXPORT:
-            m_exportState->Draw(this);
-            break;
-    }
-
+    m_videoEditState->Draw(this);
     ImGui::End();
+
+    if (m_showExportWidget) {
+        m_exportWidget->Draw(this);
+    }
 }
 
 const char* EditingScreen::GetCurrentWindowName() const {
     switch (m_currentState) {
         case EditingScreenState::VIDEO_EDIT:        return "VideoEdit";
-        case EditingScreenState::EXPORT:            return "Export";
         default:                                    return "EditingScreen";
     }
 }

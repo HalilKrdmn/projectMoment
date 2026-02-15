@@ -8,19 +8,22 @@
 #include <string>
 #include <chrono>
 
+
 class EditingScreen;
+
 
 class VideoEditState {
 public:
     VideoEditState() = default;
     ~VideoEditState();
 
+
     void Draw(const EditingScreen *parent);
 
 private:
     void DrawVideoPlayer() const;
-    void DrawTimeline(const VideoInfo& video);
-    void DrawTimelineHeader(ImVec2 pos, ImVec2 size);
+    void DrawTimeline(const EditingScreen * parent, const VideoInfo & video);
+    void DrawTimelineHeader(const EditingScreen * parent, ImVec2 pos, ImVec2 size);
     void DrawEmptyTrackBoxFull(ImVec2 pos, ImVec2 size, const char* label);
     void DrawTrackBoxFull(ImVec2 pos, ImVec2 size, const char* label, int trackIndex) const;
     void DrawInfoBar(const VideoInfo& video) const;

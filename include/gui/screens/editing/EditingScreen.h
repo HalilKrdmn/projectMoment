@@ -5,16 +5,15 @@
 #include <memory>
 
 
-
 struct VideoInfo;
 
 class VideoEditState;
-class ExportState;
+class ExportWidget;
 
 enum class EditingScreenState {
-    VIDEO_EDIT,
-    EXPORT
+    VIDEO_EDIT
 };
+
 
 class EditingScreen : public BaseScreen {
 public:
@@ -22,15 +21,13 @@ public:
 
     void Draw() override;
 
-    void ChangeState(const EditingScreenState newState) {
-        m_currentState = newState;
-    }
-
+    void ChangeState(const EditingScreenState newState) {m_currentState = newState;}
     const char *GetCurrentWindowName() const;
 
+    mutable bool m_showExportWidget = false;
 private:
     EditingScreenState m_currentState = EditingScreenState::VIDEO_EDIT;
 
     std::unique_ptr<VideoEditState> m_videoEditState;
-    std::unique_ptr<ExportState> m_exportState;
+    std::unique_ptr<ExportWidget> m_exportWidget;
 };

@@ -58,12 +58,12 @@ void VideoEditState::Draw(const EditingScreen *parent) {
     DrawInfoBar(video);
     ImGui::Spacing();
 
-    // ✅ MIDDLE: Video Player
+    // Video Player
     DrawVideoPlayer();
     ImGui::Spacing();
 
     // Draw timeline panel
-    DrawTimeline(video);
+    DrawTimeline(parent, video);
 }
 
 
@@ -97,7 +97,7 @@ void VideoEditState::DrawVideoPlayer() const {
     ImGui::EndChild();
 }
 
-void VideoEditState::DrawTimeline(const VideoInfo& video) {
+void VideoEditState::DrawTimeline(const EditingScreen* parent, const VideoInfo& video) {
     ImGui::BeginChild("Timeline", ImVec2(0, ImGui::GetContentRegionAvail().y), true);
 
     ImDrawList* drawList = ImGui::GetWindowDrawList();
@@ -113,7 +113,7 @@ void VideoEditState::DrawTimeline(const VideoInfo& video) {
     }
 
     constexpr float topHeight = 50.0f;
-    DrawTimelineHeader(ImVec2(containerPos.x, containerPos.y), ImVec2(containerSize.x, topHeight));
+    DrawTimelineHeader(parent, ImVec2(containerPos.x, containerPos.y), ImVec2(containerSize.x, topHeight));
 
     const char* trackNames[] = {"Clip", "Main Audio", "Game Audio", "Microphone"};
     const float trackBoxHeight = (containerSize.y - topHeight) / 4.0f;
@@ -141,7 +141,7 @@ void VideoEditState::DrawTimeline(const VideoInfo& video) {
     ImGui::EndChild();
 }
 
-void VideoEditState::DrawTimelineHeader(const ImVec2 pos, const ImVec2 size) {
+void VideoEditState::DrawTimelineHeader(const EditingScreen* parent, const ImVec2 pos, const ImVec2 size) {
     ImDrawList* drawList = ImGui::GetWindowDrawList();
 
     drawList->AddRectFilled(pos, ImVec2(pos.x + size.x, pos.y + size.y),
@@ -210,12 +210,12 @@ void VideoEditState::DrawTimelineHeader(const ImVec2 pos, const ImVec2 size) {
     ImGui::SetCursorScreenPos(ImVec2(exportX, pos.y + 5));
     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.3f, 0.5f, 0.3f, 0.8f));
 
-    if (ImGui::Button("📤 Export", ImVec2(exportButtonWidth, 35))) {
-        // TODO: Export
+    if (ImGui::Button("Export", ImVec2(exportButtonWidth, 35))) {
+        parent->m_showExportWidget = true;
     }
     ImGui::SameLine(0, 3);
 
-    if (ImGui::Button("⋯", ImVec2(50, 35))) {
+    if (ImGui::Button("...", ImVec2(50, 35))) {
         // TODO: Menu
     }
 

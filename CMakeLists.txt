@@ -68,10 +68,11 @@ set(GUI_EDITING_SCREENS_SOURCES
         src/gui/screens/editing/EditingScreen.cpp
         include/gui/screens/editing/EditingScreen.h
 
+        src/gui/screens/editing/ExportWidget.cpp
+        include/gui/screens/editing/ExportWidget.h
+
         src/gui/screens/editing/states/VideoEditState.cpp
         include/gui/screens/editing/states/VideoEditState.h
-        src/gui/screens/editing/states/ExportState.cpp
-        include/gui/screens/editing/states/ExportState.h
 )
 
 add_executable(projectMoment

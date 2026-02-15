@@ -62,8 +62,7 @@ void VideoListState::DrawVideoGrid(MainScreen* parent) {
         } else {
             ImGui::Button("No Thumbnail", ImVec2(thumbnailSize, thumbnailSize * 9.0f / 16.0f));
         }
-        
-        // Video bilgileri
+
         ImGui::PushTextWrapPos(ImGui::GetCursorPos().x + thumbnailSize);
         
         ImGui::TextWrapped("%s", video.name.c_str());
