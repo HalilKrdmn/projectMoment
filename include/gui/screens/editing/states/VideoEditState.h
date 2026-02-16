@@ -26,7 +26,7 @@ private:
     void DrawTimelineHeader(const EditingScreen * parent, ImVec2 pos, ImVec2 size);
     void DrawEmptyTrackBoxFull(ImVec2 pos, ImVec2 size, const char* label);
     void DrawTrackBoxFull(ImVec2 pos, ImVec2 size, const char* label, int trackIndex) const;
-    void DrawInfoBar(const VideoInfo& video) const;
+    void DrawInfoBar(const EditingScreen *parent, const VideoInfo &video) const;
 
     std::unique_ptr<VideoPlayer> m_videoPlayer;
     std::unique_ptr<AudioAnalyzer> m_audioAnalyzer;

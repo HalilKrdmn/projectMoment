@@ -20,6 +20,7 @@ public:
     explicit EditingScreen(MainWindow* manager);
 
     void Draw() override;
+    void Close() const;
 
     void ChangeState(const EditingScreenState newState) {m_currentState = newState;}
     const char *GetCurrentWindowName() const;

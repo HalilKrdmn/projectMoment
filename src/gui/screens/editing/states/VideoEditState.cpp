@@ -55,7 +55,7 @@ void VideoEditState::Draw(const EditingScreen *parent) {
     m_playbackProgress = static_cast<float>(m_videoPlayer->GetProgress());
     m_isPlaying = m_videoPlayer->IsPlaying();
 
-    DrawInfoBar(video);
+    DrawInfoBar(parent, video);
     ImGui::Spacing();
 
     // Video Player
@@ -503,7 +503,7 @@ void VideoEditState::DrawTrackBoxFull(const ImVec2 pos, const ImVec2 size, const
 
 
 
-void VideoEditState::DrawInfoBar(const VideoInfo& video) const {
+void VideoEditState::DrawInfoBar(const EditingScreen* parent, const VideoInfo& video) const {
     ImGui::BeginChild("InfoBar", ImVec2(0, 40), true);
 
     ImDrawList* drawList = ImGui::GetWindowDrawList();
@@ -532,6 +532,18 @@ void VideoEditState::DrawInfoBar(const VideoInfo& video) const {
     char resStr[64];
     snprintf(resStr, sizeof(resStr), "Resolution: %dx%d", m_videoPlayer->GetWidth(), m_videoPlayer->GetHeight());
     drawList->AddText(ImVec2(textX, textY), IM_COL32(150, 150, 200, 255), resStr);
+
+    // Back button
+    ImGui::SetCursorScreenPos(ImVec2(pos.x + size.x - 80, pos.y + (size.y - 20) / 2));
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.6f, 0.2f, 0.2f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.8f, 0.3f, 0.3f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.5f, 0.1f, 0.1f, 1.0f));
+
+    if (ImGui::Button("Back", ImVec2(70, 20))) {
+        parent->Close();
+    }
+
+    ImGui::PopStyleColor(3);
 
     ImGui::EndChild();
 }

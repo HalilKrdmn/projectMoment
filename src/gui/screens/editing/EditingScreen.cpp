@@ -4,6 +4,7 @@
 #include "gui/screens/editing/ExportWidget.h"
 
 #include "imgui.h"
+#include "gui/core/MainWindow.h"
 
 EditingScreen::EditingScreen(MainWindow *manager)
     : BaseScreen(manager){
@@ -12,6 +13,10 @@ EditingScreen::EditingScreen(MainWindow *manager)
     m_videoEditState = std::make_unique<VideoEditState>();
     m_exportWidget = std::make_unique<ExportWidget>();
 
+}
+
+void EditingScreen::Close() const {
+    GetManager()->SetApplicationState(ApplicationState::MAIN);
 }
 
 void EditingScreen::Draw() {
@@ -32,6 +37,7 @@ void EditingScreen::Draw() {
         m_exportWidget->Draw(this);
     }
 }
+
 
 const char* EditingScreen::GetCurrentWindowName() const {
     switch (m_currentState) {
