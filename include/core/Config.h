@@ -10,12 +10,45 @@
 namespace fs = std::filesystem;
 
 struct Config {
+
+    /*
+     *  GENERAL SETTINGS
+     */
+
     // App info
     std::string appVersion = "0.0.1-11022026";
     std::string appName = "ProjectMoment";
 
     // Library
     std::string libraryPath;
+
+
+    /*
+     *  RECORDING SETTINGS
+     */
+
+    // General
+    std::string recordingMode = "native";  // "obs" or "native"
+    std::string recordingHotkey = "F9";
+
+    // OBS
+    std::string obsHost = "localhost";
+    int obsPort = 4455;
+    std::string obsPassword = "";
+    bool obsAutoStart = true;
+    bool obsAskBeforeClosing = true;
+    bool obsRememberChoice = false;
+    int obsReplayBufferDuration = 60;
+
+    // Native Recording
+    std::string nativeAudioInputDevice = "";
+    std::string nativeAudioOutputDevice = "";
+    std::string nativeScreenOutput = "";
+    std::string nativeVideoCodec = "libx264";
+    std::string nativeAudioCodec = "aac";
+    int nativeVideoBitrate = 5000;
+    int nativeAudioBitrate = 192;
+    int nativeFPS = 30;
 
     template<typename T>
     bool Set(const std::string &section, const std::string &key, const T &value) {
