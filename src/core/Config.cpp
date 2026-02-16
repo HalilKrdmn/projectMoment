@@ -34,6 +34,10 @@ bool Config::Load() {
     try {
         auto AppSettings = toml::parse_file(path.string());
 
+        /*
+         *  GENERAL SETTINGS
+         */
+
         // App info
         appVersion = AppSettings["app"]["version"].value_or<std::string>(std::move(appVersion));
         appName = AppSettings["app"]["name"].value_or<std::string>(std::move(appName));
@@ -41,6 +45,32 @@ bool Config::Load() {
         // Library
         libraryPath = AppSettings["library"]["path"].value_or<std::string>("");
 
+        /*
+         *  RECORDING SETTINGS
+         */
+
+        // General recording
+        recordingMode = AppSettings["recording"]["mode"].value_or<std::string>(std::move(recordingMode));
+        recordingHotkey = AppSettings["recording"]["hotkey"].value_or<std::string>(std::move(recordingHotkey));
+
+        // OBS settings
+        obsHost = AppSettings["recording"]["obs"]["host"].value_or<std::string>(std::move(obsHost));
+        obsPort = AppSettings["recording"]["obs"]["port"].value_or<int>(std::move(obsPort));
+        obsPassword = AppSettings["recording"]["obs"]["password"].value_or<std::string>(std::move(obsPassword));
+        obsAutoStart = AppSettings["recording"]["obs"]["auto_start"].value_or<bool>(std::move(obsAutoStart));
+        obsAskBeforeClosing = AppSettings["recording"]["obs"]["ask_before_closing"].value_or<bool>(std::move(obsAskBeforeClosing));
+        obsRememberChoice = AppSettings["recording"]["obs"]["remember_choice"].value_or<bool>(std::move(obsRememberChoice));
+        obsReplayBufferDuration = AppSettings["recording"]["obs"]["replay_buffer_duration"].value_or<int>(std::move(obsReplayBufferDuration));
+
+        // Native recording settings
+        nativeAudioInputDevice = AppSettings["recording"]["native"]["audio_input_device"].value_or<std::string>(std::move(nativeAudioInputDevice));
+        nativeAudioOutputDevice = AppSettings["recording"]["native"]["audio_output_device"].value_or<std::string>(std::move(nativeAudioOutputDevice));
+        nativeScreenOutput = AppSettings["recording"]["native"]["screen_output"].value_or<std::string>(std::move(nativeScreenOutput));
+        nativeVideoCodec = AppSettings["recording"]["native"]["video_codec"].value_or<std::string>(std::move(nativeVideoCodec));
+        nativeAudioCodec = AppSettings["recording"]["native"]["audio_codec"].value_or<std::string>(std::move(nativeAudioCodec));
+        nativeVideoBitrate = AppSettings["recording"]["native"]["video_bitrate"].value_or<int>(std::move(nativeVideoBitrate));
+        nativeAudioBitrate = AppSettings["recording"]["native"]["audio_bitrate"].value_or<int>(std::move(nativeAudioBitrate));
+        nativeFPS = AppSettings["recording"]["native"]["fps"].value_or<int>(std::move(nativeFPS));
 
 
         return true;
@@ -69,6 +99,9 @@ bool Config::Save() const {
         file << "# Auto-generated - Manual edits are preserved\n";
         file << "#\n";
         file << "\n";
+        file << "\n";
+
+        file << "# GENERAL SETTINGS\n";
 
         // [app]
         file << "[app]\n";
@@ -79,6 +112,37 @@ bool Config::Save() const {
         // [library]
         file << "[library]\n";
         file << "path = \"" << libraryPath << "\"\n";
+        file << "\n";
+        file << "\n";
+
+        file << "# RECORDING SETTINGS\n";
+
+        file << "[recording]\n";
+        file << "mode = \"" << recordingMode << "\"\n";
+        file << "hotkey = \"" << recordingHotkey << "\"\n";
+        file << "\n";
+
+        // [recording.obs]
+        file << "[recording.obs]\n";
+        file << "host = \"" << obsHost << "\"\n";
+        file << "port = " << obsPort << "\n";
+        file << "password = \"" << obsPassword << "\"\n";
+        file << "auto_start = " << (obsAutoStart ? "true" : "false") << "\n";
+        file << "ask_before_closing = " << (obsAskBeforeClosing ? "true" : "false") << "\n";
+        file << "remember_choice = " << (obsRememberChoice ? "true" : "false") << "\n";
+        file << "replay_buffer_duration = " << obsReplayBufferDuration << "\n";
+        file << "\n";
+
+        // [recording.native]
+        file << "[recording.native]\n";
+        file << "audio_input_device = \"" << nativeAudioInputDevice << "\"\n";
+        file << "audio_output_device = \"" << nativeAudioOutputDevice << "\"\n";
+        file << "screen_output = \"" << nativeScreenOutput << "\"\n";
+        file << "video_codec = \"" << nativeVideoCodec << "\"\n";
+        file << "audio_codec = \"" << nativeAudioCodec << "\"\n";
+        file << "video_bitrate = " << nativeVideoBitrate << "\n";
+        file << "audio_bitrate = " << nativeAudioBitrate << "\n";
+        file << "fps = " << nativeFPS << "\n";
         file << "\n";
 
         std::cout << "[Config] Saved to: " << path << std::endl;
