@@ -34,6 +34,8 @@ set(MEDIA_SOURCES
         include/core/media/MetadataEmbedder.h
         src/core/media/ThumbnailService.cpp
         include/core/media/ThumbnailService.h
+        src/core/media/VideoExporter.cpp
+        include/core/media/VideoExporter.h
         src/core/media/VideoPlayer.cpp
         include/core/media/VideoPlayer.h
 )

@@ -25,6 +25,8 @@ public:
     void ChangeState(const EditingScreenState newState) {m_currentState = newState;}
     const char *GetCurrentWindowName() const;
 
+    VideoEditState* GetVideoEditState() const { return m_videoEditState.get(); }
+
     mutable bool m_showExportWidget = false;
 private:
     EditingScreenState m_currentState = EditingScreenState::VIDEO_EDIT;

@@ -20,6 +20,12 @@ public:
 
     void Draw(const EditingScreen *parent);
 
+    float GetSelectStart() const { return m_selectStart; }
+    float GetSelectEnd() const { return m_selectEnd; }
+    float GetTotalDuration() const {
+        return m_videoPlayer ? m_videoPlayer->GetDuration() : 0.0f;
+    }
+
 private:
     void DrawVideoPlayer() const;
     void DrawTimeline(const EditingScreen * parent, const VideoInfo & video);
