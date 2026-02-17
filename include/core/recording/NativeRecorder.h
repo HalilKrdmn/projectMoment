@@ -32,9 +32,11 @@ public:
     ~NativeRecorder();
 
     // Device enumeration
-    std::vector<AudioDevice> GetAudioInputDevices();
-    std::vector<AudioDevice> GetAudioOutputDevices();
-    std::vector<ScreenInfo> GetScreens();
+    static std::vector<AudioDevice> GetAudioInputDevices();
+
+    static std::vector<AudioDevice> GetAudioOutputDevices();
+
+    static std::vector<ScreenInfo> GetScreens();
 
     // Configuration
     void SetAudioInputDevice(const std::string& deviceId);
@@ -82,6 +84,6 @@ private:
 
     std::function<void(const std::string&)> m_statusCallback;
 
-    bool ExecuteCommand(const std::string& command, std::string& output);
+    static bool ExecuteCommand(const std::string& command, std::string& output);
     void UpdateStatus(const std::string& status);
 };

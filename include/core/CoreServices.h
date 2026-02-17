@@ -3,9 +3,10 @@
 #include "core/ProjectPaths.h"
 
 #include "core/Config.h"
-#include "core/library/VideoDatabase.h"
 #include "core/library/VideoLibrary.h"
+#include "core/library/VideoDatabase.h"
 #include "core/import/VideoImportService.h"
+#include "recording/RecordingManager.h"
 
 #include <memory>
 
@@ -20,17 +21,19 @@ public:
         return GetService(m_config);
     }
 
-    VideoDatabase* GetVideoDatabase() {
-        return GetService(m_videoDatabase);
-    }
-
     VideoLibrary* GetVideoLibrary() {
         return GetService(m_videoLibrary);
+    }
+
+    VideoDatabase* GetVideoDatabase() {
+        return GetService(m_videoDatabase);
     }
 
     VideoImportService* GetVideoImportService() {
         return GetService(m_videoImportService);
     }
+
+    RecordingManager* GetRecordingManager() const { return m_recordingManager.get(); }
 
     bool IsInitialized() const;
     void Shutdown();
@@ -53,6 +56,7 @@ private:
     std::unique_ptr<VideoLibrary> m_videoLibrary;
     std::unique_ptr<VideoDatabase> m_videoDatabase;
     std::unique_ptr<VideoImportService> m_videoImportService;
+    std::unique_ptr<RecordingManager> m_recordingManager;
 
     mutable std::mutex m_mutex;
     bool m_initialized = false;

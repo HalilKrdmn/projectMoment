@@ -18,6 +18,8 @@ void CoreServices::Initialize() {
     std::lock_guard lock(m_mutex);
     if (m_initialized) return;
 
+    m_recordingManager = std::make_unique<RecordingManager>();
+
     if (!m_config || m_config->libraryPath.empty()) {
         return;
     }
@@ -49,14 +51,25 @@ void CoreServices::Shutdown() {
     
     std::cout << "[CoreServices] Shutting down..." << std::endl;
 
-    if (m_videoImportService) {
-        m_videoImportService.reset();
-    }
-    
     if (m_videoLibrary) {
         m_videoLibrary.reset();
     }
-    
+
+    if (m_videoDatabase) {
+        m_videoDatabase.reset();
+    }
+
+    if (m_videoImportService) {
+        m_videoImportService.reset();
+    }
+
+    if (m_recordingManager) {
+        if (m_recordingManager->IsRecording()) {
+            m_recordingManager->StopRecording();
+        }
+        m_recordingManager.reset();
+    }
+
     m_initialized = false;
     
     std::cout << "[CoreServices] Shutdown complete" << std::endl;

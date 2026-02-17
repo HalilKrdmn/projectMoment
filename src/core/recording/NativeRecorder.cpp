@@ -1,6 +1,5 @@
 #include "core/recording/NativeRecorder.h"
 
-#include "NativeRecorder.h"
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -12,7 +11,6 @@
 #include <chrono>
 
 NativeRecorder::NativeRecorder() {
-    // PipeWire/PulseAudio'yu kontrol et
     if (!CheckDependencies()) {
         UpdateStatus("Warning: Missing dependencies (wf-recorder or pipewire)");
     }
@@ -23,14 +21,11 @@ NativeRecorder::~NativeRecorder() {
 }
 
 bool NativeRecorder::CheckDependencies() {
-    // wf-recorder kontrolü
-    bool hasWfRecorder = system("which wf-recorder > /dev/null 2>&1") == 0;
+    const bool hasWfRecorder = system("which wf-recorder > /dev/null 2>&1") == 0;
 
-    // PipeWire kontrolü
-    bool hasPipewire = system("which pw-cli > /dev/null 2>&1") == 0;
+    const bool hasPipewire = system("which pw-cli > /dev/null 2>&1") == 0;
 
-    // Fallback: pactl (PulseAudio)
-    bool hasPulseAudio = system("which pactl > /dev/null 2>&1") == 0;
+    const bool hasPulseAudio = system("which pactl > /dev/null 2>&1") == 0;
 
     printf("[NativeRecorder] Dependencies check:\n");
     printf("  wf-recorder: %s\n", hasWfRecorder ? "✓" : "✗");
@@ -42,10 +37,8 @@ bool NativeRecorder::CheckDependencies() {
 
 std::string NativeRecorder::GetCompositorType() {
     const char* waylandDisplay = getenv("WAYLAND_DISPLAY");
-    const char* xdgSessionType = getenv("XDG_SESSION_TYPE");
 
-    if (waylandDisplay || (xdgSessionType && strcmp(xdgSessionType, "wayland") == 0)) {
-        // Compositor tipini belirle
+    if (const char* xdgSessionType = getenv("XDG_SESSION_TYPE"); waylandDisplay || (xdgSessionType && strcmp(xdgSessionType, "wayland") == 0)) {
         if (system("pgrep -x sway > /dev/null 2>&1") == 0) return "sway";
         if (system("pgrep -x Hyprland > /dev/null 2>&1") == 0) return "hyprland";
         if (system("pgrep -x wayfire > /dev/null 2>&1") == 0) return "wayfire";
@@ -66,20 +59,16 @@ bool NativeRecorder::ExecuteCommand(const std::string& command, std::string& out
         output += buffer.data();
     }
 
-    int returnCode = pclose(pipe);
+    const int returnCode = pclose(pipe);
     return returnCode == 0;
 }
 
 std::vector<AudioDevice> NativeRecorder::GetAudioInputDevices() {
     std::vector<AudioDevice> devices;
-    std::string output;
 
-    // PipeWire kullanıyorsa
-    if (ExecuteCommand("pw-cli ls Node 2>/dev/null | grep -A 5 'Audio/Source'", output)) {
-        // PipeWire device parsing
+    if (std::string output; ExecuteCommand("pw-cli ls Node 2>/dev/null | grep -A 5 'Audio/Source'", output)) {
         printf("[NativeRecorder] Using PipeWire for audio input devices\n");
     }
-    // PulseAudio fallback
     else if (ExecuteCommand("pactl list sources short", output)) {
         printf("[NativeRecorder] Using PulseAudio for audio input devices\n");
 
@@ -104,7 +93,6 @@ std::vector<AudioDevice> NativeRecorder::GetAudioInputDevices() {
         }
     }
 
-    // Default device ekle
     if (devices.empty()) {
         devices.push_back({"default", "Default Input", true, "System default"});
     }
@@ -115,9 +103,8 @@ std::vector<AudioDevice> NativeRecorder::GetAudioInputDevices() {
 
 std::vector<AudioDevice> NativeRecorder::GetAudioOutputDevices() {
     std::vector<AudioDevice> devices;
-    std::string output;
 
-    if (ExecuteCommand("pactl list sinks short", output)) {
+    if (std::string output; ExecuteCommand("pactl list sinks short", output)) {
         std::istringstream iss(output);
         std::string line;
 
@@ -150,15 +137,11 @@ std::vector<AudioDevice> NativeRecorder::GetAudioOutputDevices() {
 std::vector<ScreenInfo> NativeRecorder::GetScreens() {
     std::vector<ScreenInfo> screens;
     std::string output;
-    std::string compositor = GetCompositorType();
 
-    if (compositor == "sway") {
-        // swaymsg kullan
+    if (std::string compositor = GetCompositorType(); compositor == "sway") {
         if (ExecuteCommand("swaymsg -t get_outputs -r", output)) {
-            // JSON parsing (basit versiyon, gerçekte json library kullan)
             printf("[NativeRecorder] Sway outputs detected\n");
 
-            // Örnek output parsing
             ScreenInfo screen;
             screen.name = "Primary Display";
             screen.output = "HDMI-A-1";
@@ -171,7 +154,6 @@ std::vector<ScreenInfo> NativeRecorder::GetScreens() {
         }
     }
     else if (compositor == "hyprland") {
-        // hyprctl kullan
         if (ExecuteCommand("hyprctl monitors -j", output)) {
             printf("[NativeRecorder] Hyprland outputs detected\n");
 
@@ -187,7 +169,6 @@ std::vector<ScreenInfo> NativeRecorder::GetScreens() {
         }
     }
     else {
-        // wlr-randr kullan (generic Wayland)
         if (ExecuteCommand("wlr-randr", output)) {
             printf("[NativeRecorder] Using wlr-randr for display detection\n");
 
@@ -236,7 +217,6 @@ bool NativeRecorder::StartRecording(const std::string& outputPath) {
 
     m_outputPath = outputPath;
 
-    // wf-recorder komutu oluştur
     std::ostringstream cmd;
     cmd << "wf-recorder";
 
@@ -267,7 +247,7 @@ bool NativeRecorder::StartRecording(const std::string& outputPath) {
     // Background process
     cmd << " &";
 
-    std::string command = cmd.str();
+    const std::string command = cmd.str();
     printf("[NativeRecorder] Starting recording: %s\n", command.c_str());
 
     // Fork process
@@ -277,17 +257,17 @@ bool NativeRecorder::StartRecording(const std::string& outputPath) {
         // Child process
         execl("/bin/sh", "sh", "-c", command.c_str(), nullptr);
         exit(1);
-    } else if (m_recorderPid > 0) {
+    }
+    if (m_recorderPid > 0) {
         // Parent process
         m_isRecording = true;
         m_recordingStartTime = std::chrono::steady_clock::now();
         UpdateStatus("Recording...");
         return true;
-    } else {
-        // Fork failed
-        UpdateStatus("Failed to start recording");
-        return false;
     }
+    // Fork failed
+    UpdateStatus("Failed to start recording");
+    return false;
 }
 
 void NativeRecorder::StopRecording() {
@@ -296,10 +276,8 @@ void NativeRecorder::StopRecording() {
     printf("[NativeRecorder] Stopping recording (PID: %d)\n", m_recorderPid);
 
     if (m_recorderPid > 0) {
-        // SIGINT gönder (graceful stop)
         kill(m_recorderPid, SIGINT);
 
-        // Process'in bitmesini bekle
         int status;
         waitpid(m_recorderPid, &status, 0);
 
@@ -315,8 +293,8 @@ void NativeRecorder::StopRecording() {
 float NativeRecorder::GetRecordingDuration() const {
     if (!m_isRecording) return 0.0f;
 
-    auto now = std::chrono::steady_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::seconds>(now - m_recordingStartTime);
+    const auto now = std::chrono::steady_clock::now();
+    const auto duration = std::chrono::duration_cast<std::chrono::seconds>(now - m_recordingStartTime);
     return static_cast<float>(duration.count());
 }
 
@@ -350,11 +328,11 @@ void NativeRecorder::SetAudioCodec(const std::string& codec) {
     m_audioCodec = codec;
 }
 
-void NativeRecorder::SetBitrates(int videoBitrate, int audioBitrate) {
+void NativeRecorder::SetBitrates(const int videoBitrate, const int audioBitrate) {
     m_videoBitrate = videoBitrate;
     m_audioBitrate = audioBitrate;
 }
 
-void NativeRecorder::SetFPS(int fps) {
+void NativeRecorder::SetFPS(const int fps) {
     m_fps = fps;
 }

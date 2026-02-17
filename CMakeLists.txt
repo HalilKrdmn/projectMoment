@@ -40,6 +40,13 @@ set(MEDIA_SOURCES
         include/core/media/VideoPlayer.h
 )
 
+set(RECORDING_SOURCES
+        src/core/recording/NativeRecorder.cpp
+        include/core/recording/NativeRecorder.h
+        src/core/recording/RecordingManager.cpp
+        include/core/recording/RecordingManager.h
+)
+
 set(GUI_CORE_SOURCES
         src/gui/core/MainWindow.cpp
         include/gui/core/MainWindow.h
@@ -55,6 +62,8 @@ set(GUI_CORE_SOURCES
 set(GUI_MAIN_SCREENS_SOURCES
         src/gui/screens/main/MainScreen.cpp
         include/gui/screens/main/MainScreen.h
+        src/gui/screens/main/TopBar.cpp
+        include/gui/screens/main/TopBar.h
 
         src/gui/screens/main/states/EmptyFolderState.cpp
         include/gui/screens/main/states/EmptyFolderState.h
@@ -81,6 +90,7 @@ add_executable(projectMoment
         ${CORE_SOURCES}
         ${LIBRARY_SOURCES}
         ${MEDIA_SOURCES}
+        ${RECORDING_SOURCES}
         ${GUI_CORE_SOURCES}
         ${GUI_MAIN_SCREENS_SOURCES}
         ${GUI_EDITING_SCREENS_SOURCES}
