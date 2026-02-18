@@ -11,11 +11,11 @@ public:
     void Draw(MainScreen* parent);
 
     static void LoadThumbnails(MainScreen* parent);
+    void RequestThumbnailReload() { m_thumbnailsLoaded = false; }
     
 private:
     bool m_thumbnailsLoaded = false;
 
-    static void DrawHeader(MainScreen* parent);
     static void DrawVideoGrid(MainScreen* parent);
 
     static MainWindow* GetMainWindow(const MainScreen* parent);

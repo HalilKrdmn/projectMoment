@@ -41,8 +41,8 @@ struct Config {
     int obsReplayBufferDuration = 60;
 
     // Native Recording
-    std::string nativeAudioInputDevice = "";
-    std::string nativeAudioOutputDevice = "";
+    std::string nativeAudioInputDevice = "default";
+    std::string nativeAudioOutputDevice = "default";
     std::string nativeScreenOutput = "";
     std::string nativeVideoCodec = "libx264";
     std::string nativeAudioCodec = "aac";

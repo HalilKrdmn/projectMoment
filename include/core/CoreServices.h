@@ -33,7 +33,16 @@ public:
         return GetService(m_videoImportService);
     }
 
-    RecordingManager* GetRecordingManager() const { return m_recordingManager.get(); }
+    RecordingManager* GetRecordingManager() {
+        if (!m_recordingManager) {
+            std::lock_guard lock(m_mutex);
+            if (!m_recordingManager) {
+                m_recordingManager = std::make_unique<RecordingManager>();
+                m_recordingManager->Initialize();
+            }
+        }
+        return m_recordingManager.get();
+    }
 
     bool IsInitialized() const;
     void Shutdown();

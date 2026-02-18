@@ -18,8 +18,6 @@ void CoreServices::Initialize() {
     std::lock_guard lock(m_mutex);
     if (m_initialized) return;
 
-    m_recordingManager = std::make_unique<RecordingManager>();
-
     if (!m_config || m_config->libraryPath.empty()) {
         return;
     }

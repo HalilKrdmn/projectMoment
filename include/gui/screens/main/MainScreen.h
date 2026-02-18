@@ -1,6 +1,7 @@
 #pragma once
 
 #include "data/VideoInfo.h"
+#include "core/recording/RecordingManager.h"
 #include "gui/core/BaseScreen.h"
 #include "gui/widgets/FolderBrowser.h"
 #include "gui/screens/main/TopBar.h"
@@ -37,6 +38,7 @@ public:
     // Public API
     static bool ValidateLibraryPath();
     void StartLibraryLoad();
+    void RefreshLibrarySilent();
 
     // State management
     void ChangeState(const MainScreenState state) { m_currentState = state; }
@@ -50,6 +52,9 @@ public:
 
     // Component access
     FolderBrowser& GetFolderBrowser() { return m_folderBrowser; }
+    RecordingManager* GetRecordingManagerPtr() const { return m_recordingManager.get(); }
+
+    bool IsRecordingActive() const {return m_recordingManager && m_recordingManager->IsRecording();}
 private:
     // State
     MainScreenState m_currentState = MainScreenState::WELCOME;

@@ -29,6 +29,7 @@ MainScreen::MainScreen(MainWindow* manager)
 
         if (m_recordingManager->IsRecording()) {
             m_recordingManager->StopRecording();
+            RefreshLibrarySilent();
             printf("[MainScreen] Recording stopped\n");
         } else {
             const bool success = m_recordingManager->StartRecording();
@@ -121,6 +122,24 @@ void MainScreen::StartLibraryLoad() {
 
         ChangeState(videos.empty() ? MainScreenState::EMPTY_FOLDER : MainScreenState::VIDEO_LIST);
         std::cout << "[MainScreen] Loaded " << videos.size() << " videos" << std::endl;
+    }).detach();
+}
+
+void MainScreen::RefreshLibrarySilent() {
+    auto& services = CoreServices::Instance();
+    auto* library = services.GetVideoLibrary();
+    const auto* config = services.GetConfig();
+
+    if (!library || !config) return;
+
+    std::thread([this, library, config]() {
+        LibraryLoader::Run(library, config->libraryPath, nullptr);
+
+        const auto videos = library->GetAllVideos();
+        this->SetCurrentVideos(videos);
+
+        m_videoListState->RequestThumbnailReload();
+        ChangeState(videos.empty() ? MainScreenState::EMPTY_FOLDER : MainScreenState::VIDEO_LIST);
     }).detach();
 }
 

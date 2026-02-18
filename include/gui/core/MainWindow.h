@@ -8,7 +8,6 @@
 class BaseScreen;
 
 enum class ApplicationState {
-    LOADING,
     MAIN,
     SETTINGS,
     EDITING

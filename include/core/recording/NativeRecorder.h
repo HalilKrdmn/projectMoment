@@ -33,9 +33,7 @@ public:
 
     // Device enumeration
     static std::vector<AudioDevice> GetAudioInputDevices();
-
     static std::vector<AudioDevice> GetAudioOutputDevices();
-
     static std::vector<ScreenInfo> GetScreens();
 
     // Configuration
@@ -67,8 +65,8 @@ public:
 private:
     std::atomic<bool> m_isRecording{false};
 
-    std::string m_audioInputDevice = "";
-    std::string m_audioOutputDevice = "";
+    std::string m_audioInputDevice = "default";
+    std::string m_audioOutputDevice = "default";
     std::string m_screenOutput = "";
     std::string m_videoCodec = "libx264";
     std::string m_audioCodec = "aac";

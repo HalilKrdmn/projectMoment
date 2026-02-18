@@ -6,6 +6,9 @@
 #include "data/VideoInfo.h"
 
 #include <algorithm>
+#include <cmath>
+
+#include "core/recording/RecordingManager.h"
 
 MainWindow* VideoListState::GetMainWindow(const MainScreen* parent) {
     return parent->GetManager();
@@ -16,67 +19,60 @@ void VideoListState::Draw(MainScreen* parent) {
         LoadThumbnails(parent);
         m_thumbnailsLoaded = true;
     }
-    
-    DrawHeader(parent);
+
     ImGui::Separator();
     ImGui::Dummy(ImVec2(0, 10));
     DrawVideoGrid(parent);
-}
-
-void VideoListState::DrawHeader(MainScreen* parent) {
-    const auto& videos = parent->GetCurrentVideos();
-    
-    ImGui::Text("Videos: %zu", videos.size());
-    ImGui::SameLine();
-    
-    if (ImGui::Button("Change Folder")) {
-        parent->GetFolderBrowser().Open();
-    }
-    
-    ImGui::SameLine();
-    ImGui::TextColored(ImVec4(0.7f, 0.7f, 0.7f, 1.0f),
-                       "| %s", parent->GetCurrentFolder().string().c_str());
 }
 
 void VideoListState::DrawVideoGrid(MainScreen* parent) {
     const ImVec2 avail = ImGui::GetContentRegionAvail();
     const auto& videos = parent->GetCurrentVideos();
 
-    float thumbnailSize = 200.0f;
-    float padding = 15.0f;
-    float itemWidth = thumbnailSize + padding * 2;
-    int columns = std::max(1, (int)(avail.x / itemWidth));
-    
+    constexpr float thumbnailSize = 200.0f;
+    constexpr float padding = 15.0f;
+    constexpr float tHeight = thumbnailSize * 9.0f / 16.0f;
+    constexpr float totalItemWidth = thumbnailSize;
+
+    const int columns = std::max(1, static_cast<int>(avail.x / (totalItemWidth + padding)));
+
     ImGui::BeginChild("VideoGrid", ImVec2(0, 0), false);
-    
+
+    int currentPos = 0;
+
     for (size_t i = 0; i < videos.size(); i++) {
         ImGui::PushID(static_cast<int>(i));
-        
         auto& video = videos[i];
-        
+
         ImGui::BeginGroup();
-        
+
         // Thumbnail
         if (video.thumbnailId) {
-            ImGui::Image(video.thumbnailId, ImVec2(thumbnailSize, thumbnailSize * 9.0f / 16.0f));
+            ImGui::Image(video.thumbnailId, ImVec2(thumbnailSize, tHeight));
         } else {
-            ImGui::Button("No Thumbnail", ImVec2(thumbnailSize, thumbnailSize * 9.0f / 16.0f));
+            ImVec2 pMin = ImGui::GetCursorScreenPos();
+            auto pMax = ImVec2(pMin.x + thumbnailSize, pMin.y + tHeight);
+            ImGui::GetWindowDrawList()->AddRectFilled(pMin, pMax, IM_COL32(50, 50, 50, 255), 8.0f);
+
+            ImGui::SetCursorScreenPos(ImVec2(pMin.x + 10, pMin.y + tHeight * 0.4f));
+            ImGui::TextDisabled("  Generating\n Thumbnail...");
+
+            ImGui::Dummy(ImVec2(thumbnailSize, tHeight));
         }
 
         ImGui::PushTextWrapPos(ImGui::GetCursorPos().x + thumbnailSize);
-        
         ImGui::TextWrapped("%s", video.name.c_str());
-        
+
         std::string dateStr = FormatUtils::FormatDate(video.recordingTimeMs);
-        ImGui::TextColored(ImVec4(0.7f, 0.7f, 0.7f, 1.0f), "📅 %s", dateStr.c_str());
+        ImGui::TextColored(ImVec4(0.7f, 0.7f, 0.7f, 1.0f), "%s", dateStr.c_str());
 
         std::string durationStr = FormatUtils::FormatDuration(video.durationSec);
         ImGui::SameLine();
-        ImGui::TextColored(ImVec4(0.7f, 0.7f, 0.7f, 1.0f), "| ⏱️ %s", durationStr.c_str());
-        
+        ImGui::TextColored(ImVec4(0.7f, 0.7f, 0.7f, 1.0f), "| %s", durationStr.c_str());
+
         ImGui::TextColored(ImVec4(0.6f, 0.6f, 0.6f, 1.0f),
-                          "📐 %dx%d", video.resolutionWidth, video.resolutionHeight);
-        
+                          "%dx%d", video.resolutionWidth, video.resolutionHeight);
+
         ImGui::PopTextWrapPos();
         ImGui::EndGroup();
 
@@ -89,7 +85,7 @@ void VideoListState::DrawVideoGrid(MainScreen* parent) {
         // Context menu
         char popupID[64];
         snprintf(popupID, sizeof(popupID), "VideoContext##%zu", i);
-        
+
         if (ImGui::BeginPopupContextItem(popupID)) {
             if (ImGui::MenuItem("Edit")) {}
             if (ImGui::MenuItem("Properties")) {}
@@ -97,17 +93,18 @@ void VideoListState::DrawVideoGrid(MainScreen* parent) {
             if (ImGui::MenuItem("Delete")) {}
             ImGui::EndPopup();
         }
-        
+
         // Grid layout
-        if ((i + 1) % columns != 0 && i < videos.size() - 1) {
-            ImGui::SameLine();
+        currentPos++;
+        if (currentPos % columns != 0 && (i < videos.size() - 1)) {
+            ImGui::SameLine(0, padding);
         } else {
             ImGui::Dummy(ImVec2(0, padding));
         }
-        
+
         ImGui::PopID();
     }
-    
+
     ImGui::EndChild();
 }
 

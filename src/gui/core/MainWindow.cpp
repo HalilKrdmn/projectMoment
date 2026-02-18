@@ -133,10 +133,6 @@ void MainWindow::SetApplicationState(const ApplicationState newState) {
 
     // Create new screen
     switch (newState) {
-        case ApplicationState::LOADING:
-            m_currentScreen = new MainScreen(this);
-            break;
-
         case ApplicationState::MAIN:
             if (!m_mainScreen) {
                 m_mainScreen = new MainScreen(this);

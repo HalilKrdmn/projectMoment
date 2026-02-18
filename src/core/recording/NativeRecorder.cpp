@@ -9,6 +9,7 @@
 #include <sys/wait.h>
 #include <unistd.h>
 #include <chrono>
+#include <thread>
 
 NativeRecorder::NativeRecorder() {
     if (!CheckDependencies()) {
@@ -237,17 +238,15 @@ bool NativeRecorder::StartRecording(const std::string& outputPath) {
     cmd << " -c " << m_videoCodec;
     cmd << " -r " << m_fps;
 
-    // Bitrate
+    // Bitrate & Preset
     cmd << " --bframes 0";  // Low latency
     cmd << " -p preset=ultrafast";
 
     // Output file
     cmd << " -f " << outputPath;
 
-    // Background process
-    cmd << " &";
+    const std::string command = "exec " + cmd.str();
 
-    const std::string command = cmd.str();
     printf("[NativeRecorder] Starting recording: %s\n", command.c_str());
 
     // Fork process
@@ -265,6 +264,7 @@ bool NativeRecorder::StartRecording(const std::string& outputPath) {
         UpdateStatus("Recording...");
         return true;
     }
+
     // Fork failed
     UpdateStatus("Failed to start recording");
     return false;
@@ -273,13 +273,27 @@ bool NativeRecorder::StartRecording(const std::string& outputPath) {
 void NativeRecorder::StopRecording() {
     if (!m_isRecording) return;
 
-    printf("[NativeRecorder] Stopping recording (PID: %d)\n", m_recorderPid);
+    printf("[NativeRecorder] Stopping recording gracefully (PID: %d)\n", m_recorderPid);
 
     if (m_recorderPid > 0) {
         kill(m_recorderPid, SIGINT);
 
+        int waitCount = 0;
         int status;
-        waitpid(m_recorderPid, &status, 0);
+        while (waitCount < 50) {  // 50 x 100ms = 5 saniye
+            if (waitpid(m_recorderPid, &status, WNOHANG) > 0) {
+                printf("[NativeRecorder] Process finished gracefully\n");
+                break;
+            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            waitCount++;
+        }
+
+        if (waitCount >= 50) {
+            printf("[NativeRecorder] Force killing process\n");
+            kill(m_recorderPid, SIGKILL);
+            waitpid(m_recorderPid, &status, 0);
+        }
 
         m_recorderPid = -1;
     }

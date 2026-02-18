@@ -298,7 +298,6 @@ VideoInfo VideoImportService::ScanVideoWithFFmpeg(const std::string& videoPath) 
     AVFormatContext* formatCtx = nullptr;
 
     try {
-        // ✅ Check return value
         int ret = avformat_open_input(&formatCtx, videoPath.c_str(), nullptr, nullptr);
         if (ret < 0) {
             char errbuf[256];
@@ -306,7 +305,6 @@ VideoInfo VideoImportService::ScanVideoWithFFmpeg(const std::string& videoPath) 
             throw std::runtime_error(std::string("Failed to open video: ") + errbuf);
         }
 
-        // ✅ Check stream info
         ret = avformat_find_stream_info(formatCtx, nullptr);
         if (ret < 0) {
             avformat_close_input(&formatCtx);
@@ -358,13 +356,10 @@ VideoInfo VideoImportService::ScanVideoWithFFmpeg(const std::string& videoPath) 
     return info;
 }
 
-// STATIC UTILITIES
 std::vector<std::string> VideoImportService::FindVideoFiles(const std::string& folderPath) {
     std::vector<std::string> videoFiles;
 
     try {
-        // ✅ Non-recursive only (safe)
-        // ✅ Uses VideoLibrary::IsVideoFile() for consistent validation
         for (const auto& entry : fs::directory_iterator(folderPath)) {
             if (entry.is_regular_file() &&
                 VideoLibrary::IsVideoFile(entry.path())) {
