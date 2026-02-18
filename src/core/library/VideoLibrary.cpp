@@ -193,29 +193,25 @@ bool VideoLibrary::UpdateVideo(const VideoInfo& info, bool updateVideoFile) {
     }
 }
 
-// bool VideoLibrary::DeleteVideo(const std::string& filePath, bool deleteFromDisk) {
-//     try {
-//         if (!m_database) {
-//             return false;
-//         }
-//
-//         // Remove from database
-//         // Implement VideoDatabase::DeleteMetadata()
-//         logs::LogWarning("DeleteVideo: Database deletion not yet implemented");
-//
-//         // Optionally delete file from disk
-//         if (deleteFromDisk && fs::exists(filePath)) {
-//             fs::remove(filePath);
-//             logs::LogInfo("Deleted video file: " + filePath);
-//         }
-//
-//         return true;
-//
-//     } catch (const std::exception& e) {
-//         logs::LogError("Failed to delete video: " + std::string(e.what()));
-//         return false;
-//     }
-// }
+bool VideoLibrary::DeleteVideo(const std::string& filePath, const bool deleteFromDisk) {
+    try {
+        if (m_database) {
+            m_database->DeleteMetadata(filePath);
+            logs::LogInfo("Removed from database: " + filePath);
+        }
+
+        if (deleteFromDisk && fs::exists(filePath)) {
+            fs::remove(filePath);
+            logs::LogInfo("Deleted video file: " + filePath);
+        }
+
+        return true;
+
+    } catch (const std::exception& e) {
+        logs::LogError("Failed to delete video: " + std::string(e.what()));
+        return false;
+    }
+}
 
 void VideoLibrary::RegenerateMissingThumbnails() {
     logs::LogInfo("Regenerating missing thumbnails...");
@@ -247,7 +243,7 @@ void VideoLibrary::SyncWithVideoFiles() const {
     logs::LogInfo("Syncing with video files...");
 
     try {
-        auto allVideos = m_database->GetAllVideos();
+        const auto allVideos = m_database->GetAllVideos();
         size_t synced = 0;
 
         for (const auto& video : allVideos) {
@@ -255,8 +251,7 @@ void VideoLibrary::SyncWithVideoFiles() const {
                 continue;
             }
 
-            VideoInfo videoFileData;
-            if (m_metadataEmbedder->ReadMetadataFromVideo(video.filePathString, videoFileData)) {
+            if (VideoInfo videoFileData; m_metadataEmbedder->ReadMetadataFromVideo(video.filePathString, videoFileData)) {
                 if (videoFileData.lastEditTimeMs > video.lastEditTimeMs) {
                     m_database->SaveMetadata(videoFileData);
                     synced++;
@@ -269,6 +264,71 @@ void VideoLibrary::SyncWithVideoFiles() const {
     } catch (const std::exception& e) {
         logs::LogError("Failed to sync with video files: " + std::string(e.what()));
     }
+}
+
+void VideoLibrary::CleanupOrphanedRecords() {
+    logs::LogInfo("Cleaning up orphaned records...");
+
+    try {
+        const auto allVideos = m_database->GetAllVideos();
+        size_t removedCount = 0;
+
+        for (const auto& video : allVideos) {
+            bool shouldRemove = false;
+
+            if (!fs::exists(video.filePath)) {
+                shouldRemove = true;
+                logs::LogInfo("  File deleted: " + video.name);
+            }
+            else if (IsVideoCorrupted(video.filePathString)) {
+                shouldRemove = true;
+                logs::LogInfo("  Corrupted video detected: " + video.name);
+            }
+
+            if (shouldRemove) {
+                if (!video.thumbnailPath.empty() && fs::exists(video.thumbnailPath)) {
+                    try {
+                        fs::remove(video.thumbnailPath);
+                        logs::LogInfo("    Deleted thumbnail");
+                    } catch (...) {}
+                }
+
+                if (fs::exists(video.filePath)) {
+                    try {
+                        fs::remove(video.filePath);
+                        logs::LogInfo("    Deleted corrupted file");
+                    } catch (...) {}
+                }
+
+                DeleteVideo(video.filePathString, false);
+                removedCount++;
+            }
+        }
+
+        logs::LogInfo("Cleanup complete: Removed " + std::to_string(removedCount) + " records");
+
+    } catch (const std::exception& e) {
+        logs::LogError("Failed to cleanup: " + std::string(e.what()));
+    }
+}
+
+bool VideoLibrary::IsVideoCorrupted(const std::string& videoPath) {
+    const std::string cmd = "ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 \""
+                     + videoPath + "\" 2>&1";
+
+    FILE* pipe = popen(cmd.c_str(), "r");
+    if (!pipe) return true;
+
+    char buffer[128];
+    std::string result;
+    while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
+        result += buffer;
+    }
+    pclose(pipe);
+
+    return result.find("moov atom not found") != std::string::npos ||
+           result.empty() ||
+           result == "N/A\n";
 }
 
 VideoLibrary::Statistics VideoLibrary::GetStatistics() const {

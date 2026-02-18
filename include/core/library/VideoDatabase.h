@@ -26,9 +26,12 @@ public:
     std::vector<VideoInfo> GetVideosByTag(const std::string& tag);
 
     bool IsScanning() const;
-    size_t GetQueueSize() const;
-    void ClearCache();
     bool VideoExists(const std::string& filePath);
+
+    void ClearCache();
+    void DeleteMetadata(const std::string& filePath);
+
+    size_t GetQueueSize() const;
 
 private:
     // Database

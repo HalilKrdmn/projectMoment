@@ -45,11 +45,13 @@ public:
     VideoInfo LoadVideo(const std::string& videoPath);
     bool SaveVideo(const VideoInfo& info);
     bool UpdateVideo(const VideoInfo& info, bool updateVideoFile = false);
-    // bool DeleteVideo(const std::string& filePath, bool deleteFromDisk = false);
+    bool DeleteVideo(const std::string& filePath, bool deleteFromDisk = false);
 
     // Maintenance Operations
     void RegenerateMissingThumbnails();
     void SyncWithVideoFiles() const;
+    void CleanupOrphanedRecords();
+    bool IsVideoCorrupted(const std::string &videoPath);
 
     // Statistics
     struct Statistics {
@@ -62,10 +64,7 @@ public:
 
     Statistics GetStatistics() const;
 
-    // =========================================================================
-    // Service Access (for advanced usage)
-    // =========================================================================
-
+    // Service Access
     VideoDatabase* GetDatabase() const { return m_database.get(); }
     ThumbnailService* GetThumbnailService() const { return m_thumbnailService.get(); }
     MetadataEmbedder* GetMetadataEmbedder() const { return m_metadataEmbedder.get(); }

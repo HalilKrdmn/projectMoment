@@ -18,6 +18,28 @@ MainScreen::MainScreen(MainWindow* manager)
     m_videoListState = std::make_unique<VideoListState>();
     m_emptyFolderState = std::make_unique<EmptyFolderState>();
 
+    m_topBar = std::make_unique<TopBar>();
+
+    m_topBar->SetOnRecordClicked([this]() {
+        if (!m_recordingManager) {
+            printf("[MainScreen] Lazy initializing RecordingManager\n");
+            m_recordingManager = std::make_unique<RecordingManager>();
+            m_recordingManager->Initialize();
+        }
+
+        if (m_recordingManager->IsRecording()) {
+            m_recordingManager->StopRecording();
+            printf("[MainScreen] Recording stopped\n");
+        } else {
+            const bool success = m_recordingManager->StartRecording();
+            printf("[MainScreen] Recording started: %s\n", success ? "success" : "failed");
+        }
+    });
+
+    m_topBar->SetOnSettingsClicked([this]() {
+        GetManager()->SetApplicationState(ApplicationState::SETTINGS);
+    });
+
     DetermineInitialState();
 }
 
@@ -39,6 +61,11 @@ bool MainScreen::ValidateLibraryPath() {
     // Starts the config service
     auto& services = CoreServices::Instance();
     const auto* config = services.GetConfig();
+
+    if (!config) {
+        printf("[MainScreen] ValidateLibraryPath: ERROR - Config is NULL!\n");
+        return false;
+    }
 
     std::cout << "[Debug] Config path: '" << config->libraryPath << "'" << std::endl;
 
@@ -79,6 +106,8 @@ void MainScreen::StartLibraryLoad() {
 
     // It takes the file path from the library path section in the config and moves it to the Loading screen.
     std::thread([this, library, config]() {
+        library->CleanupOrphanedRecords();
+
         LibraryLoader::Run(library, config->libraryPath,
             [this](const std::string& msg, const float progress) {
                 m_loadingState->AddLog(msg, progress);
@@ -107,6 +136,14 @@ void MainScreen::Draw() {
     ImGui::SetNextWindowSize(viewport->WorkSize);
 
     ImGui::Begin(GetCurrentWindowName(), nullptr, flags);
+
+
+    if (m_currentState == MainScreenState::VIDEO_LIST ||
+        m_currentState == MainScreenState::EMPTY_FOLDER) {
+
+        m_topBar->Draw(this, m_recordingManager.get());
+        ImGui::Spacing();
+        }
 
     switch (m_currentState) {
         case MainScreenState::WELCOME:

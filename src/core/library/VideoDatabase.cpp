@@ -164,6 +164,11 @@ bool VideoDatabase::IsScanning() const {
     return !scanQueue.empty();
 }
 
+bool VideoDatabase::VideoExists(const std::string& filePath) {
+    std::lock_guard lock(cacheMutex);
+    return memoryCache.contains(filePath);
+}
+
 size_t VideoDatabase::GetQueueSize() const {
     return scanQueue.size();
 }
@@ -173,9 +178,28 @@ void VideoDatabase::ClearCache() {
     memoryCache.clear();
 }
 
-bool VideoDatabase::VideoExists(const std::string& filePath) {
-    std::lock_guard lock(cacheMutex);
-    return memoryCache.contains(filePath);
+void VideoDatabase::DeleteMetadata(const std::string& filePath) {
+    std::cout << "DeleteMetadata: " << filePath << std::endl;
+
+    {
+        std::lock_guard lock(cacheMutex);
+        memoryCache.erase(filePath);
+        std::cout << "  Removed from memory cache" << std::endl;
+    }
+
+    sqlite3_stmt* stmt;
+
+    if (const auto deleteSQL = "DELETE FROM videos WHERE file_path = ?;"; sqlite3_prepare_v2(db, deleteSQL, -1, &stmt, nullptr) == SQLITE_OK) {
+        sqlite3_bind_text(stmt, 1, filePath.c_str(), -1, SQLITE_STATIC);
+
+        if (sqlite3_step(stmt) == SQLITE_DONE) {
+            std::cout << "  Removed from database" << std::endl;
+        } else {
+            std::cout << "  Database deletion failed: " << sqlite3_errmsg(db) << std::endl;
+        }
+
+        sqlite3_finalize(stmt);
+    }
 }
 
 void VideoDatabase::LoadCacheFromDB() {

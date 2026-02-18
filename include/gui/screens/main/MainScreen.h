@@ -3,11 +3,12 @@
 #include "data/VideoInfo.h"
 #include "gui/core/BaseScreen.h"
 #include "gui/widgets/FolderBrowser.h"
+#include "gui/screens/main/TopBar.h"
 
 #include <vector>
-#include <chrono>
 #include <memory>
 #include <filesystem>
+
 
 struct VideoInfo;
 
@@ -23,6 +24,7 @@ enum class MainScreenState {
     EMPTY_FOLDER,
     VIDEO_LIST
 };
+
 
 class MainScreen : public BaseScreen {
 public:
@@ -59,6 +61,9 @@ private:
     std::unique_ptr<EmptyFolderState> m_emptyFolderState;
 
     // UI Components
+    std::unique_ptr<TopBar> m_topBar;
+    std::unique_ptr<RecordingManager> m_recordingManager;
+
     FolderBrowser m_folderBrowser;
 
     // Data
