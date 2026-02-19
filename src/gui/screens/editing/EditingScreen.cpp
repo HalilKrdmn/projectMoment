@@ -2,9 +2,9 @@
 
 #include "gui/screens/editing/states/VideoEditState.h"
 #include "gui/screens/editing/ExportWidget.h"
+#include "gui/core/MainWindow.h"
 
 #include "imgui.h"
-#include "gui/core/MainWindow.h"
 
 EditingScreen::EditingScreen(MainWindow *manager)
     : BaseScreen(manager){

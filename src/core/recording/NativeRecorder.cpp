@@ -21,49 +21,6 @@ NativeRecorder::~NativeRecorder() {
     StopRecording();
 }
 
-bool NativeRecorder::CheckDependencies() {
-    const bool hasWfRecorder = system("which wf-recorder > /dev/null 2>&1") == 0;
-
-    const bool hasPipewire = system("which pw-cli > /dev/null 2>&1") == 0;
-
-    const bool hasPulseAudio = system("which pactl > /dev/null 2>&1") == 0;
-
-    printf("[NativeRecorder] Dependencies check:\n");
-    printf("  wf-recorder: %s\n", hasWfRecorder ? "✓" : "✗");
-    printf("  PipeWire: %s\n", hasPipewire ? "✓" : "✗");
-    printf("  PulseAudio: %s\n", hasPulseAudio ? "✓" : "✗");
-
-    return hasWfRecorder && (hasPipewire || hasPulseAudio);
-}
-
-std::string NativeRecorder::GetCompositorType() {
-    const char* waylandDisplay = getenv("WAYLAND_DISPLAY");
-
-    if (const char* xdgSessionType = getenv("XDG_SESSION_TYPE"); waylandDisplay || (xdgSessionType && strcmp(xdgSessionType, "wayland") == 0)) {
-        if (system("pgrep -x sway > /dev/null 2>&1") == 0) return "sway";
-        if (system("pgrep -x Hyprland > /dev/null 2>&1") == 0) return "hyprland";
-        if (system("pgrep -x wayfire > /dev/null 2>&1") == 0) return "wayfire";
-        return "wayland";
-    }
-
-    return "x11";
-}
-
-bool NativeRecorder::ExecuteCommand(const std::string& command, std::string& output) {
-    std::array<char, 128> buffer;
-    output.clear();
-
-    FILE* pipe = popen(command.c_str(), "r");
-    if (!pipe) return false;
-
-    while (fgets(buffer.data(), buffer.size(), pipe) != nullptr) {
-        output += buffer.data();
-    }
-
-    const int returnCode = pclose(pipe);
-    return returnCode == 0;
-}
-
 std::vector<AudioDevice> NativeRecorder::GetAudioInputDevices() {
     std::vector<AudioDevice> devices;
 
@@ -227,10 +184,10 @@ bool NativeRecorder::StartRecording(const std::string& outputPath) {
     }
 
     // Audio input (microphone)
-    if (!m_audioInputDevice.empty()) {
+    for (const auto& track : m_audioTracks) {
         cmd << " -a";
-        if (m_audioInputDevice != "default") {
-            cmd << "=" << m_audioInputDevice;
+        if (!track.device.empty() && track.device != "default") {
+            cmd << "=" << track.device;
         }
     }
 
@@ -312,6 +269,49 @@ float NativeRecorder::GetRecordingDuration() const {
     return static_cast<float>(duration.count());
 }
 
+bool NativeRecorder::CheckDependencies() {
+    const bool hasWfRecorder = system("which wf-recorder > /dev/null 2>&1") == 0;
+
+    const bool hasPipewire = system("which pw-cli > /dev/null 2>&1") == 0;
+
+    const bool hasPulseAudio = system("which pactl > /dev/null 2>&1") == 0;
+
+    printf("[NativeRecorder] Dependencies check:\n");
+    printf("  wf-recorder: %s\n", hasWfRecorder ? "✓" : "✗");
+    printf("  PipeWire: %s\n", hasPipewire ? "✓" : "✗");
+    printf("  PulseAudio: %s\n", hasPulseAudio ? "✓" : "✗");
+
+    return hasWfRecorder && (hasPipewire || hasPulseAudio);
+}
+
+std::string NativeRecorder::GetCompositorType() {
+    const char* waylandDisplay = getenv("WAYLAND_DISPLAY");
+
+    if (const char* xdgSessionType = getenv("XDG_SESSION_TYPE"); waylandDisplay || (xdgSessionType && strcmp(xdgSessionType, "wayland") == 0)) {
+        if (system("pgrep -x sway > /dev/null 2>&1") == 0) return "sway";
+        if (system("pgrep -x Hyprland > /dev/null 2>&1") == 0) return "hyprland";
+        if (system("pgrep -x wayfire > /dev/null 2>&1") == 0) return "wayfire";
+        return "wayland";
+    }
+
+    return "x11";
+}
+
+bool NativeRecorder::ExecuteCommand(const std::string& command, std::string& output) {
+    std::array<char, 128> buffer;
+    output.clear();
+
+    FILE* pipe = popen(command.c_str(), "r");
+    if (!pipe) return false;
+
+    while (fgets(buffer.data(), buffer.size(), pipe) != nullptr) {
+        output += buffer.data();
+    }
+
+    const int returnCode = pclose(pipe);
+    return returnCode == 0;
+}
+
 void NativeRecorder::UpdateStatus(const std::string& status) {
     m_status = status;
     if (m_statusCallback) {
@@ -319,14 +319,8 @@ void NativeRecorder::UpdateStatus(const std::string& status) {
     }
 }
 
-void NativeRecorder::SetAudioInputDevice(const std::string& deviceId) {
-    m_audioInputDevice = deviceId;
-    printf("[NativeRecorder] Audio input device set to: %s\n", deviceId.c_str());
-}
-
-void NativeRecorder::SetAudioOutputDevice(const std::string& deviceId) {
-    m_audioOutputDevice = deviceId;
-    printf("[NativeRecorder] Audio output device set to: %s\n", deviceId.c_str());
+void NativeRecorder::SetAudioTracks(const std::vector<AudioTrack>& tracks) {
+    m_audioTracks = tracks;
 }
 
 void NativeRecorder::SetScreen(const std::string& output) {

@@ -39,7 +39,7 @@ private:
 
     std::string m_lastLoadedPath;
     std::chrono::high_resolution_clock::time_point m_lastFrameTime;
-    
+
     float m_playbackProgress = 0.0f;
     bool m_isPlaying = false;
     float m_selectStart = 0.0f;

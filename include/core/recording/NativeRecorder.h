@@ -6,6 +6,8 @@
 #include <string>
 #include <vector>
 
+#include "core/Config.h"
+
 
 struct AudioDevice {
     std::string id;
@@ -37,8 +39,7 @@ public:
     static std::vector<ScreenInfo> GetScreens();
 
     // Configuration
-    void SetAudioInputDevice(const std::string& deviceId);
-    void SetAudioOutputDevice(const std::string& deviceId);
+    void SetAudioTracks(const std::vector<AudioTrack>& tracks);
     void SetScreen(const std::string& output);  // Wayland output name
     void SetVideoCodec(const std::string& codec);
     void SetAudioCodec(const std::string& codec);
@@ -65,8 +66,7 @@ public:
 private:
     std::atomic<bool> m_isRecording{false};
 
-    std::string m_audioInputDevice = "default";
-    std::string m_audioOutputDevice = "default";
+    std::vector<AudioTrack> m_audioTracks;
     std::string m_screenOutput = "";
     std::string m_videoCodec = "libx264";
     std::string m_audioCodec = "aac";

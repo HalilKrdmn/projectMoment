@@ -321,20 +321,12 @@ VideoInfo VideoImportService::ScanVideoWithFFmpeg(const std::string& videoPath) 
         // Find video stream
         bool foundVideo = false;
         for (unsigned i = 0; i < formatCtx->nb_streams; i++) {
-            AVStream* stream = formatCtx->streams[i];
-
-            if (!stream || !stream->codecpar) {
-                continue;
-            }
+            const AVStream* stream = formatCtx->streams[i];
+            if (!stream || !stream->codecpar) continue;
 
             if (stream->codecpar->codec_type == AVMEDIA_TYPE_VIDEO) {
-                info.resolutionWidth = stream->codecpar->width;
+                info.resolutionWidth  = stream->codecpar->width;
                 info.resolutionHeight = stream->codecpar->height;
-
-                const AVCodecDescriptor* desc = avcodec_descriptor_get(stream->codecpar->codec_id);
-                if (desc) {
-                    info.codec = desc->name;
-                }
                 foundVideo = true;
                 break;
             }
