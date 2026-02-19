@@ -7,7 +7,16 @@
 #include <filesystem>
 #include <optional>
 
+
+struct AudioTrack {
+    std::string name;
+    std::string device;
+};
+
+enum class AudioMode { Mixed, Separated, Virtual };
+
 namespace fs = std::filesystem;
+
 
 struct Config {
 
@@ -41,8 +50,8 @@ struct Config {
     int obsReplayBufferDuration = 60;
 
     // Native Recording
-    std::string nativeAudioInputDevice = "default";
-    std::string nativeAudioOutputDevice = "default";
+    AudioMode nativeAudioMode = AudioMode::Mixed;
+    std::vector<AudioTrack> nativeAudioTracks = {{"Desktop", "default"}};
     std::string nativeScreenOutput = "";
     std::string nativeVideoCodec = "libx264";
     std::string nativeAudioCodec = "aac";

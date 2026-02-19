@@ -85,10 +85,6 @@ std::vector<VideoInfo> VideoLibrary::SearchByName(const std::string& query) cons
     return m_database->SearchByName(query);
 }
 
-std::vector<VideoInfo> VideoLibrary::SearchByTag(const std::string& tag) const {
-    return m_database->GetVideosByTag(tag);
-}
-
 std::vector<VideoInfo> VideoLibrary::FilterByDuration(double minSec, double maxSec) const {
     auto allVideos = m_database->GetAllVideos();
     std::vector<VideoInfo> filtered;

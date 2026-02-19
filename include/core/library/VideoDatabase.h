@@ -42,7 +42,7 @@ private:
     void SaveToDB(const VideoInfo& info) const;
 
     // Background
-    void BackgroundWorker();
+    void BackgroundWorker() const;
 
     static VideoInfo ExtractVideoMetadata(const std::string& filePath);
     static std::string CalculateFileHash();

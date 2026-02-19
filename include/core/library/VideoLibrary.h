@@ -51,7 +51,7 @@ public:
     void RegenerateMissingThumbnails();
     void SyncWithVideoFiles() const;
     void CleanupOrphanedRecords();
-    bool IsVideoCorrupted(const std::string &videoPath);
+    static bool IsVideoCorrupted(const std::string &videoPath);
 
     // Statistics
     struct Statistics {

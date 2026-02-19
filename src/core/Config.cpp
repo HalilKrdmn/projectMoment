@@ -63,8 +63,22 @@ bool Config::Load() {
         obsReplayBufferDuration = AppSettings["recording"]["obs"]["replay_buffer_duration"].value_or<int>(std::move(obsReplayBufferDuration));
 
         // Native recording settings
-        nativeAudioInputDevice = AppSettings["recording"]["native"]["audio_input_device"].value_or<std::string>(std::move(nativeAudioInputDevice));
-        nativeAudioOutputDevice = AppSettings["recording"]["native"]["audio_output_device"].value_or<std::string>(std::move(nativeAudioOutputDevice));
+        // Audio mode
+        if (const std::string audioModeStr = AppSettings["recording"]["native"]["audio_mode"].value_or<std::string>("mixed"); audioModeStr == "separated")
+                                            nativeAudioMode = AudioMode::Separated;
+        else if (audioModeStr == "virtual") nativeAudioMode = AudioMode::Virtual;
+        else                                nativeAudioMode = AudioMode::Mixed;
+        // Audio tracks
+        if (const auto arr = AppSettings["recording"]["native"]["audio_tracks"].as_array()) {
+            nativeAudioTracks.clear();
+            for (auto& el : *arr) {
+                if (!el.is_table()) continue;
+                AudioTrack track;
+                track.name   = (*el.as_table())["name"].value_or<std::string>("");
+                track.device = (*el.as_table())["device"].value_or<std::string>("default");
+                if (!track.name.empty()) nativeAudioTracks.push_back(track);
+            }
+        }
         nativeScreenOutput = AppSettings["recording"]["native"]["screen_output"].value_or<std::string>(std::move(nativeScreenOutput));
         nativeVideoCodec = AppSettings["recording"]["native"]["video_codec"].value_or<std::string>(std::move(nativeVideoCodec));
         nativeAudioCodec = AppSettings["recording"]["native"]["audio_codec"].value_or<std::string>(std::move(nativeAudioCodec));
@@ -134,9 +148,17 @@ bool Config::Save() const {
         file << "\n";
 
         // [recording.native]
-        file << "[recording.native]\n";
-        file << "audio_input_device = \"" << nativeAudioInputDevice << "\"\n";
-        file << "audio_output_device = \"" << nativeAudioOutputDevice << "\"\n";
+        // Audio mode
+        std::string audioModeStr = "mixed";
+        if (nativeAudioMode == AudioMode::Separated) audioModeStr = "separated";
+        else if (nativeAudioMode == AudioMode::Virtual) audioModeStr = "virtual";
+        file << "audio_mode = \"" << audioModeStr << "\"\n\n";
+        // Audio tracks
+        for (const auto&[name, device] : nativeAudioTracks) {
+            file << "[[recording.native.audio_tracks]]\n";
+            file << "name = \"" << name << "\"\n";
+            file << "device = \"" << device << "\"\n\n";
+        }
         file << "screen_output = \"" << nativeScreenOutput << "\"\n";
         file << "video_codec = \"" << nativeVideoCodec << "\"\n";
         file << "audio_codec = \"" << nativeAudioCodec << "\"\n";
