@@ -1,6 +1,8 @@
 #include "core/Config.h"
+
 #include <fstream>
 
+// Create or load when started.
 std::optional<Config> Config::InitializeOrCreateConfig() {
     Config settings;
     if (settings.Exists()) {
@@ -34,35 +36,24 @@ bool Config::Load() {
     try {
         auto AppSettings = toml::parse_file(path.string());
 
-        /*
-         *  GENERAL SETTINGS
-         */
+        appVersion     = AppSettings["app"]["version"].value_or<std::string>("0.0.1-11022026");
 
-        // App info
-        appVersion = AppSettings["app"]["version"].value_or<std::string>(std::move(appVersion));
-        appName = AppSettings["app"]["name"].value_or<std::string>(std::move(appName));
+        // ─── GENERAL SETTINGS ───────────────────────────────────────────────────────
 
-        // Library
-        libraryPath = AppSettings["library"]["path"].value_or<std::string>("");
+        startMinimized = AppSettings["general"]["start_minimized"].value_or(false);
+        libraryPath    = AppSettings["general"]["library_path"].value_or<std::string>("");
 
-        /*
-         *  RECORDING SETTINGS
-         */
+        // ─── RECORDING SETTINGS ─────────────────────────────────────────────────────
 
-        // General recording
-        recordingMode = AppSettings["recording"]["mode"].value_or<std::string>(std::move(recordingMode));
-        recordingHotkey = AppSettings["recording"]["hotkey"].value_or<std::string>(std::move(recordingHotkey));
+        recordingMode      = AppSettings["recording"]["mode"].value_or<std::string>("native");
+        recordingAutoStart = AppSettings["recording"]["auto_start"].value_or(false);
+        hotkeyRecordToggle = AppSettings["recording"]["hotkey_record_toggle"].value_or<std::string>("F10");
+        hotkeySaveClip     = AppSettings["recording"]["hotkey_save_clip"].value_or<std::string>("F11");
+        hotkeyToggleMic    = AppSettings["recording"]["hotkey_toggle_mic"].value_or<std::string>("F12");
 
-        // OBS settings
-        obsHost = AppSettings["recording"]["obs"]["host"].value_or<std::string>(std::move(obsHost));
-        obsPort = AppSettings["recording"]["obs"]["port"].value_or<int>(std::move(obsPort));
-        obsPassword = AppSettings["recording"]["obs"]["password"].value_or<std::string>(std::move(obsPassword));
-        obsAutoStart = AppSettings["recording"]["obs"]["auto_start"].value_or<bool>(std::move(obsAutoStart));
-        obsAskBeforeClosing = AppSettings["recording"]["obs"]["ask_before_closing"].value_or<bool>(std::move(obsAskBeforeClosing));
-        obsRememberChoice = AppSettings["recording"]["obs"]["remember_choice"].value_or<bool>(std::move(obsRememberChoice));
-        obsReplayBufferDuration = AppSettings["recording"]["obs"]["replay_buffer_duration"].value_or<int>(std::move(obsReplayBufferDuration));
+        obsHost = AppSettings["recording"]["obs"]["host"].value_or<std::string>("localhost");
+        obsPort = AppSettings["recording"]["obs"]["port"].value_or<int>(4455);
 
-        // Native recording settings
         // Audio mode
         if (const std::string audioModeStr = AppSettings["recording"]["native"]["audio_mode"].value_or<std::string>("mixed"); audioModeStr == "separated")
                                             nativeAudioMode = AudioMode::Separated;
@@ -76,6 +67,8 @@ bool Config::Load() {
                 AudioTrack track;
                 track.name   = (*el.as_table())["name"].value_or<std::string>("");
                 track.device = (*el.as_table())["device"].value_or<std::string>("default");
+                const std::string typeStr = (*el.as_table())["device_type"].value_or<std::string>("input");
+                track.deviceType = (typeStr == "output") ? AudioDeviceType::Output : AudioDeviceType::Input;
                 if (!track.name.empty()) nativeAudioTracks.push_back(track);
             }
         }
@@ -85,8 +78,9 @@ bool Config::Load() {
         nativeVideoBitrate = AppSettings["recording"]["native"]["video_bitrate"].value_or<int>(std::move(nativeVideoBitrate));
         nativeAudioBitrate = AppSettings["recording"]["native"]["audio_bitrate"].value_or<int>(std::move(nativeAudioBitrate));
         nativeFPS = AppSettings["recording"]["native"]["fps"].value_or<int>(std::move(nativeFPS));
+        replayBufferDuration = AppSettings["recording"]["native"]["replay_buffer_duration"].value_or<int>(std::move(replayBufferDuration));
 
-
+        // ──────────────────────────────────────────────────────────────────────────
         return true;
 
     } catch (const toml::parse_error& err) {
@@ -111,61 +105,55 @@ bool Config::Save() const {
         file << "#\n";
         file << "# ProjectMoment Settings\n";
         file << "# Auto-generated - Manual edits are preserved\n";
-        file << "#\n";
-        file << "\n";
-        file << "\n";
-
-        file << "# GENERAL SETTINGS\n";
-
-        // [app]
+        file << "#";
+        file << "# DON'T TOUCH!";
         file << "[app]\n";
         file << "version = \"" << appVersion << "\"\n";
-        file << "name = \"" << appName << "\"\n";
+        file << "#";
+        file << "\n";
         file << "\n";
 
-        // [library]
-        file << "[library]\n";
-        file << "path = \"" << libraryPath << "\"\n";
-        file << "\n";
+
+        file << "# GENERAL SETTINGS\n";
+        file << "[general]\n";
+        file << "start_minimized = " << (startMinimized ? "true" : "false") << "\n";
+        file << "library_path = \"" << libraryPath << "\"\n\n";
         file << "\n";
 
         file << "# RECORDING SETTINGS\n";
 
         file << "[recording]\n";
         file << "mode = \"" << recordingMode << "\"\n";
-        file << "hotkey = \"" << recordingHotkey << "\"\n";
-        file << "\n";
+        file << "auto_start = " << (recordingAutoStart ? "true" : "false") << "\n";
+        file << "hotkey_record_toggle = \"" << hotkeyRecordToggle << "\"\n";
+        file << "hotkey_save_clip = \"" << hotkeySaveClip << "\"\n";
+        file << "hotkey_toggle_mic = \"" << hotkeyToggleMic << "\"\n\n";
 
-        // [recording.obs]
         file << "[recording.obs]\n";
         file << "host = \"" << obsHost << "\"\n";
-        file << "port = " << obsPort << "\n";
-        file << "password = \"" << obsPassword << "\"\n";
-        file << "auto_start = " << (obsAutoStart ? "true" : "false") << "\n";
-        file << "ask_before_closing = " << (obsAskBeforeClosing ? "true" : "false") << "\n";
-        file << "remember_choice = " << (obsRememberChoice ? "true" : "false") << "\n";
-        file << "replay_buffer_duration = " << obsReplayBufferDuration << "\n";
-        file << "\n";
+        file << "port = " << obsPort << "\n\n";
 
-        // [recording.native]
+        file << "[recording.native]\n";
         // Audio mode
         std::string audioModeStr = "mixed";
         if (nativeAudioMode == AudioMode::Separated) audioModeStr = "separated";
         else if (nativeAudioMode == AudioMode::Virtual) audioModeStr = "virtual";
         file << "audio_mode = \"" << audioModeStr << "\"\n\n";
-        // Audio tracks
-        for (const auto&[name, device] : nativeAudioTracks) {
-            file << "[[recording.native.audio_tracks]]\n";
-            file << "name = \"" << name << "\"\n";
-            file << "device = \"" << device << "\"\n\n";
-        }
         file << "screen_output = \"" << nativeScreenOutput << "\"\n";
         file << "video_codec = \"" << nativeVideoCodec << "\"\n";
         file << "audio_codec = \"" << nativeAudioCodec << "\"\n";
         file << "video_bitrate = " << nativeVideoBitrate << "\n";
         file << "audio_bitrate = " << nativeAudioBitrate << "\n";
         file << "fps = " << nativeFPS << "\n";
+        file << "replay_buffer_duration = " << replayBufferDuration << "\n";
         file << "\n";
+        // Audio tracks
+        for (const auto&[name, device, deviceType] : nativeAudioTracks) {
+            file << "[[recording.native.audio_tracks]]\n";
+            file << "name = \"" << name << "\"\n";
+            file << "device = \"" << device << "\"\n";
+            file << "device_type = \"" << (deviceType == AudioDeviceType::Output ? "output" : "input") << "\"\n\n";
+        }
 
         std::cout << "[Config] Saved to: " << path << std::endl;
         return true;
@@ -183,6 +171,7 @@ bool Config::Exists() {
 
 fs::path Config::GetSettingsPath() {
     #ifdef _WIN32
+        // NOT TESTED!
         if (const char* appdata = std::getenv("APPDATA");) {
             return fs::path(appdata) / "projectMoment" / "config.toml";
         }
