@@ -50,7 +50,7 @@ struct Config {
     int nativeVideoBitrate                      = 5000;
     int nativeAudioBitrate                      = 192;
     int nativeFPS                               = 30;
-    int replayBufferDuration                    = 30;
+    int clipDuration                            = 30;
 
     template<typename T>
     bool Set(const std::string &section, const std::string &key, const T &value) {

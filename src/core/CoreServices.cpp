@@ -1,6 +1,5 @@
 #include "core/CoreServices.h"
 
-
 CoreServices::CoreServices() {
     if (auto loadedConfig = Config::InitializeOrCreateConfig(); loadedConfig.has_value()) {
         m_config = std::make_unique<Config>(loadedConfig.value());
@@ -59,13 +58,6 @@ void CoreServices::Shutdown() {
 
     if (m_videoImportService) {
         m_videoImportService.reset();
-    }
-
-    if (m_recordingManager) {
-        if (m_recordingManager->IsRecording()) {
-            m_recordingManager->StopRecording();
-        }
-        m_recordingManager.reset();
     }
 
     m_initialized = false;

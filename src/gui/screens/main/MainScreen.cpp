@@ -20,23 +20,6 @@ MainScreen::MainScreen(MainWindow* manager)
 
     m_topBar = std::make_unique<TopBar>();
 
-    m_topBar->SetOnRecordClicked([this]() {
-        if (!m_recordingManager) {
-            printf("[MainScreen] Lazy initializing RecordingManager\n");
-            m_recordingManager = std::make_unique<RecordingManager>();
-            m_recordingManager->Initialize();
-        }
-
-        if (m_recordingManager->IsRecording()) {
-            m_recordingManager->StopRecording();
-            RefreshLibrarySilent();
-            printf("[MainScreen] Recording stopped\n");
-        } else {
-            const bool success = m_recordingManager->StartRecording();
-            printf("[MainScreen] Recording started: %s\n", success ? "success" : "failed");
-        }
-    });
-
     m_topBar->SetOnSettingsClicked([this]() {
         GetManager()->SetApplicationState(ApplicationState::SETTINGS);
     });
@@ -68,18 +51,18 @@ bool MainScreen::ValidateLibraryPath() {
         return false;
     }
 
-    std::cout << "[Debug] Config path: '" << config->libraryPath << "'" << std::endl;
+    std::cout << "[MainScreen] Config path: '" << config->libraryPath << "'" << std::endl;
 
     // If the file path in the config is empty, it displays the WelcomeStates screen.
     if (config->libraryPath.empty()) {
-        std::cout << "[Debug] Path is empty, switching to WELCOME" << std::endl;
+        std::cout << "[MainScreen] Path is empty, switching to WELCOME" << std::endl;
         return false;
     }
 
     // If the file path exists in the config but the file is not on the disk,
     // it displays the WelcomeStates screen directly without creating a folder.
     if (!std::filesystem::exists(config->libraryPath)) {
-        std::cout << "[Debug] Path in config does not exist on disk, switching to WELCOME" << std::endl;
+        std::cout << "[MainScreen] Path in config does not exist on disk, switching to WELCOME" << std::endl;
         return false;
     }
 

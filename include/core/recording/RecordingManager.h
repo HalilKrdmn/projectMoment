@@ -1,14 +1,12 @@
 #pragma once
 
-// #include "core/recording/OBSController.h"
 #include "core/recording/NativeRecorder.h"
 
+#include <memory>
 
-enum class RecordingMode {
-    OBS,
-    NATIVE
-};
-
+// ──────────────────────────────────────────────────────────────────────────
+enum class RecordingMode { NATIVE, OBS };
+// ──────────────────────────────────────────────────────────────────────────
 
 class RecordingManager {
 public:
@@ -17,20 +15,23 @@ public:
 
     void Initialize();
 
-    bool StartRecording();
-    void StopRecording();
+    // ── Recording ───────────────────────────────────────────────────────────
+    void StartRecording() const;
+    void StopRecording() const;
     bool IsRecording() const;
 
+    // ── Clip ─────────────────────────────────────────────────────────────────
+    void SaveClip() const;
+    bool IsSavingClip() const;
+
+    // ── Assistants ───────────────────────────────────────────────────────────
     static RecordingMode GetMode();
-    // OBSController* GetOBSController() { return &m_obsController; }
+    // GetOBSRecorder
     NativeRecorder* GetNativeRecorder() const { return m_nativeRecorder.get(); }
 
-    // void ShowSettingsDialog();
-    // void ShowCloseOBSDialog();
-
 private:
-    // OBSController m_obsController;
-    std::unique_ptr<NativeRecorder> m_nativeRecorder;
+    void ApplyConfig() const;
 
-    bool m_obsWasStartedByUs = false;
+    std::unique_ptr<NativeRecorder> m_nativeRecorder;
+    int m_clipDuration;
 };

@@ -32,10 +32,11 @@ private:
     GLFWwindow* window;
 
     BaseScreen* m_currentScreen = nullptr;
-    BaseScreen* m_mainScreen = nullptr;
-    BaseScreen* m_editingScreen = nullptr;
-
     ApplicationState m_currentState;
+
+    BaseScreen* m_mainScreen = nullptr;
+    BaseScreen* m_settingsScreen = nullptr;
+    BaseScreen* m_editingScreen = nullptr;
 
     VideoInfo m_selectedVideo;
 };

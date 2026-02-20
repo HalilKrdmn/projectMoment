@@ -2,102 +2,107 @@
 
 #include "core/CoreServices.h"
 
-RecordingManager::RecordingManager() {
+#include <filesystem>
+
+// ──────────────────────────────────────────────────────────────────────────
+RecordingManager::RecordingManager() : m_clipDuration(0) {
     m_nativeRecorder = std::make_unique<NativeRecorder>();
 }
 
 RecordingManager::~RecordingManager() {
-    StopRecording();
+    if (m_nativeRecorder) m_nativeRecorder->StopRecording();
 }
 
+// ─── Initialize ────────────────────────────────────────────────────────────
 void RecordingManager::Initialize() {
-    auto& services = CoreServices::Instance();
-    const Config* config = services.GetConfig();
+    const Config* cfg = CoreServices::Instance().GetConfig();
 
-    if (!config) {
-        printf("[RecordingManager] Config not available\n");
+    printf("[RecordingManager] Initialize — mod: %s\n", cfg->recordingMode.c_str());
+
+    m_clipDuration = cfg->clipDuration;
+    ApplyConfig();
+
+    if (cfg->recordingAutoStart && GetMode() == RecordingMode::NATIVE)
+        StartRecording();
+
+    printf("[RecordingManager] Initialize: OKAY\n");
+}
+
+// ─── Recording ──────────────────────────────────────────────────────────────────
+void RecordingManager::StartRecording() const {
+    if (GetMode() == RecordingMode::OBS) {
+        // m_obsController.StartReplayBuffer();
         return;
     }
 
-    printf("[RecordingManager] Initialize - Recording mode: %s\n", config->recordingMode.c_str());
+    if (!m_nativeRecorder) return;
 
-    // Audio tracks
-    if (!config->nativeAudioTracks.empty()) {
-        m_nativeRecorder->SetAudioTracks(config->nativeAudioTracks);
-        printf("[RecordingManager] Initialize - Audio tracks: %zu\n", config->nativeAudioTracks.size());
-    }
-
-    if (!config->nativeScreenOutput.empty()) {
-        m_nativeRecorder->SetScreen(config->nativeScreenOutput);
-    }
-
-    if (!config->nativeVideoCodec.empty()) {
-        m_nativeRecorder->SetVideoCodec(config->nativeVideoCodec);
-    }
-
-    if (!config->nativeAudioCodec.empty()) {
-        m_nativeRecorder->SetAudioCodec(config->nativeAudioCodec);
-    }
-
-    if (config->nativeVideoBitrate > 0 || config->nativeAudioBitrate > 0) {
-        m_nativeRecorder->SetBitrates(config->nativeVideoBitrate, config->nativeAudioBitrate);
-    }
-
-    if (config->nativeFPS > 0) {
-        m_nativeRecorder->SetFPS(config->nativeFPS);
-    }
-
-    m_nativeRecorder->SetStatusCallback([](const std::string& status) {
-        printf("[RecordingManager] Status: %s\n", status.c_str());
+    m_nativeRecorder->SetClipDuration(m_clipDuration);
+    m_nativeRecorder->SetOnClipSaved([](const fs::path& p, const bool ok) {
+        printf("[RecordingManager] Clip %s: %s\n", ok ? "recorded" : "FAIL", p.c_str());
     });
 
-    printf("[RecordingManager] Initialize: COMPLETE\n");
+    if (m_nativeRecorder->StartRecording())
+        printf("[RecordingManager] recording has begun (%ds clip)\n", m_clipDuration);
+    else
+        printf("[RecordingManager] Unable to start recording!\n");
 }
 
-
-bool RecordingManager::StartRecording() {
-    auto& services = CoreServices::Instance();
-    const Config* config = services.GetConfig();
-
-    if (!config) return false;
-
-    if (config->recordingMode == "obs") {
-        printf("[RecordingManager] OBS mode not implemented yet\n");
-        return false;
+void RecordingManager::StopRecording() const {
+    if (GetMode() == RecordingMode::OBS) {
+        // m_obsController.StopReplayBuffer();
+        printf("[RecordingManager] Recording stopped\n");
+        return;
     }
-    // Native recording
-    const std::string outputPath = config->libraryPath + "/recording_" +
-                             std::to_string(time(nullptr)) + ".mp4";
-
-    return m_nativeRecorder->StartRecording(outputPath);
-}
-
-void RecordingManager::StopRecording() {
-    auto& services = CoreServices::Instance();
-    const Config* config = services.GetConfig();
-
-    if (!config) return;
-
-    if (config->recordingMode == "obs") {
-        // m_obsController.StopRecording();
-    } else {
+    if (m_nativeRecorder) {
         m_nativeRecorder->StopRecording();
+        printf("[RecordingManager] Recording stopped\n");
     }
 }
 
 bool RecordingManager::IsRecording() const {
-    // Config* config = GetConfig();
-    // if (config && config->recordingMode == "obs") {
-    //     return m_obsController.IsRecording();
-    // }
+    if (GetMode() == RecordingMode::OBS) return false;
+    return m_nativeRecorder && m_nativeRecorder->IsRecording();
+}
 
-    return m_nativeRecorder->IsRecording();
+// ─── Recording a clip ───────────────────────────────────────────────────────────────────────
+void RecordingManager::SaveClip() const {
+    if (GetMode() == RecordingMode::OBS) {
+        // m_obsController.SendSaveReplayBuffer();
+        return;
+    }
+    if (m_nativeRecorder) m_nativeRecorder->SaveClip();
+}
+
+bool RecordingManager::IsSavingClip() const {
+    return m_nativeRecorder && m_nativeRecorder->IsSaving();
+}
+
+// ─── Helpers ───────────────────────────────────────────────────────────────────────
+void RecordingManager::ApplyConfig() const {
+    const Config* cfg = CoreServices::Instance().GetConfig();
+    if (!cfg || !m_nativeRecorder) return;
+
+    if (!cfg->nativeAudioTracks.empty())
+        m_nativeRecorder->SetAudioTracks(cfg->nativeAudioTracks);
+    if (!cfg->nativeScreenOutput.empty())
+        m_nativeRecorder->SetScreen(cfg->nativeScreenOutput);
+    if (!cfg->nativeVideoCodec.empty())
+        m_nativeRecorder->SetVideoCodec(cfg->nativeVideoCodec);
+    if (!cfg->nativeAudioCodec.empty())
+        m_nativeRecorder->SetAudioCodec(cfg->nativeAudioCodec);
+    if (cfg->nativeVideoBitrate > 0 || cfg->nativeAudioBitrate > 0)
+        m_nativeRecorder->SetBitrates(cfg->nativeVideoBitrate, cfg->nativeAudioBitrate);
+    if (cfg->nativeFPS > 0)
+        m_nativeRecorder->SetFPS(cfg->nativeFPS);
+
+    m_nativeRecorder->SetOutputDirectory(cfg->libraryPath);
+    m_nativeRecorder->SetStatusCallback([](const std::string& s) {
+        printf("[RecordingManager] %s\n", s.c_str());
+    });
 }
 
 RecordingMode RecordingManager::GetMode() {
-    if (const Config* config = CoreServices::Instance().GetConfig(); config && config->recordingMode == "obs") {
-        return RecordingMode::OBS;
-    }
+    if (const Config* cfg = CoreServices::Instance().GetConfig(); cfg && cfg->recordingMode == "obs") return RecordingMode::OBS;
     return RecordingMode::NATIVE;
 }
-

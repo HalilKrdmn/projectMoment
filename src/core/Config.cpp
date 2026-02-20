@@ -55,10 +55,18 @@ bool Config::Load() {
         obsPort = AppSettings["recording"]["obs"]["port"].value_or<int>(4455);
 
         // Audio mode
-        if (const std::string audioModeStr = AppSettings["recording"]["native"]["audio_mode"].value_or<std::string>("mixed"); audioModeStr == "separated")
-                                            nativeAudioMode = AudioMode::Separated;
+        if (const std::string audioModeStr = AppSettings["recording"]["native"]["audio_mode"].value_or<std::string>("mixed");
+        audioModeStr == "separated")        nativeAudioMode = AudioMode::Separated;
         else if (audioModeStr == "virtual") nativeAudioMode = AudioMode::Virtual;
         else                                nativeAudioMode = AudioMode::Mixed;
+        nativeScreenOutput = AppSettings["recording"]["native"]["screen_output"].value_or<std::string>(std::move(nativeScreenOutput));
+        nativeVideoCodec = AppSettings["recording"]["native"]["video_codec"].value_or<std::string>(std::move(nativeVideoCodec));
+        nativeAudioCodec = AppSettings["recording"]["native"]["audio_codec"].value_or<std::string>(std::move(nativeAudioCodec));
+        nativeVideoBitrate = AppSettings["recording"]["native"]["video_bitrate"].value_or<int>(std::move(nativeVideoBitrate));
+        nativeAudioBitrate = AppSettings["recording"]["native"]["audio_bitrate"].value_or<int>(std::move(nativeAudioBitrate));
+        nativeFPS = AppSettings["recording"]["native"]["fps"].value_or<int>(std::move(nativeFPS));
+        clipDuration = AppSettings["recording"]["native"]["clip_duration"].value_or<int>(std::move(clipDuration));
+
         // Audio tracks
         if (const auto arr = AppSettings["recording"]["native"]["audio_tracks"].as_array()) {
             nativeAudioTracks.clear();
@@ -72,14 +80,6 @@ bool Config::Load() {
                 if (!track.name.empty()) nativeAudioTracks.push_back(track);
             }
         }
-        nativeScreenOutput = AppSettings["recording"]["native"]["screen_output"].value_or<std::string>(std::move(nativeScreenOutput));
-        nativeVideoCodec = AppSettings["recording"]["native"]["video_codec"].value_or<std::string>(std::move(nativeVideoCodec));
-        nativeAudioCodec = AppSettings["recording"]["native"]["audio_codec"].value_or<std::string>(std::move(nativeAudioCodec));
-        nativeVideoBitrate = AppSettings["recording"]["native"]["video_bitrate"].value_or<int>(std::move(nativeVideoBitrate));
-        nativeAudioBitrate = AppSettings["recording"]["native"]["audio_bitrate"].value_or<int>(std::move(nativeAudioBitrate));
-        nativeFPS = AppSettings["recording"]["native"]["fps"].value_or<int>(std::move(nativeFPS));
-        replayBufferDuration = AppSettings["recording"]["native"]["replay_buffer_duration"].value_or<int>(std::move(replayBufferDuration));
-
         // ──────────────────────────────────────────────────────────────────────────
         return true;
 
@@ -105,22 +105,16 @@ bool Config::Save() const {
         file << "#\n";
         file << "# ProjectMoment Settings\n";
         file << "# Auto-generated - Manual edits are preserved\n";
-        file << "#";
-        file << "# DON'T TOUCH!";
+        file << "# DON'T TOUCH!\n";
         file << "[app]\n";
         file << "version = \"" << appVersion << "\"\n";
-        file << "#";
         file << "\n";
         file << "\n";
 
-
-        file << "# GENERAL SETTINGS\n";
         file << "[general]\n";
         file << "start_minimized = " << (startMinimized ? "true" : "false") << "\n";
         file << "library_path = \"" << libraryPath << "\"\n\n";
         file << "\n";
-
-        file << "# RECORDING SETTINGS\n";
 
         file << "[recording]\n";
         file << "mode = \"" << recordingMode << "\"\n";
@@ -138,14 +132,14 @@ bool Config::Save() const {
         std::string audioModeStr = "mixed";
         if (nativeAudioMode == AudioMode::Separated) audioModeStr = "separated";
         else if (nativeAudioMode == AudioMode::Virtual) audioModeStr = "virtual";
-        file << "audio_mode = \"" << audioModeStr << "\"\n\n";
+        file << "audio_mode = \"" << audioModeStr << "\"\n";
         file << "screen_output = \"" << nativeScreenOutput << "\"\n";
         file << "video_codec = \"" << nativeVideoCodec << "\"\n";
         file << "audio_codec = \"" << nativeAudioCodec << "\"\n";
         file << "video_bitrate = " << nativeVideoBitrate << "\n";
         file << "audio_bitrate = " << nativeAudioBitrate << "\n";
         file << "fps = " << nativeFPS << "\n";
-        file << "replay_buffer_duration = " << replayBufferDuration << "\n";
+        file << "clip_duration = " << clipDuration << "\n";
         file << "\n";
         // Audio tracks
         for (const auto&[name, device, deviceType] : nativeAudioTracks) {

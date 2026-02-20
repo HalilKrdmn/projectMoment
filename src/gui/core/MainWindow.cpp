@@ -1,6 +1,7 @@
 #include "gui/core/MainWindow.h"
 
 #include "gui/screens/main/MainScreen.h"
+#include "gui/screens/settings/SettingsScreen.h"
 #include "gui/screens/editing/EditingScreen.h"
 
 #include <cstdio>
@@ -128,32 +129,31 @@ int MainWindow::Run() const {
 }
 
 void MainWindow::SetApplicationState(const ApplicationState newState) {
-
     m_currentState = newState;
 
-    // Create new screen
     switch (newState) {
         case ApplicationState::MAIN:
-            if (!m_mainScreen) {
+            if (!m_mainScreen)
                 m_mainScreen = new MainScreen(this);
-            }
             m_currentScreen = m_mainScreen;
             break;
 
         case ApplicationState::SETTINGS:
-            fprintf(stderr, "Settings screen not implemented yet\n");
-            m_currentScreen = new MainScreen(this);
+            if (!m_settingsScreen)
+                m_settingsScreen = new SettingsScreen(this);
+            m_currentScreen = m_settingsScreen;
             break;
 
         case ApplicationState::EDITING:
-            if (!m_editingScreen) {
+            if (!m_editingScreen)
                 m_editingScreen = new EditingScreen(this);
-            }
             m_currentScreen = m_editingScreen;
             break;
 
         default:
-            m_currentScreen = new MainScreen(this);
+            if (!m_mainScreen)
+                m_mainScreen = new MainScreen(this);
+            m_currentScreen = m_mainScreen;
             break;
     }
 

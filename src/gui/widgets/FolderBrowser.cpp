@@ -55,8 +55,12 @@ void FolderBrowser::Draw() {
 
         if (auto* config = services.GetConfig()) {
             config->libraryPath = m_currentPath.string();
-            config->Set("library", "path", m_currentPath.string());
-            std::cout << "[FolderBrowser] Config updated successfully" << std::endl;
+
+            if (!config->Save()) {
+                std::cerr << "[FolderBrowser] Config save failed" << std::endl;
+            } else {
+                std::cout << "[FolderBrowser] Config updated successfully" << std::endl;
+            }
         }
 
         // Fire selection callback
