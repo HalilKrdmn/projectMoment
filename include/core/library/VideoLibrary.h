@@ -4,7 +4,6 @@
 
 #include "core/CoreServices.h"
 
-
 #include <array>
 #include <filesystem>
 #include <memory>
@@ -37,7 +36,6 @@ public:
     std::vector<VideoInfo> GetAllVideos() const;
     std::optional<std::reference_wrapper<const VideoInfo>> GetVideo(const std::string& filePath) const;
     std::vector<VideoInfo> SearchByName(const std::string& query) const;
-    std::vector<VideoInfo> SearchByTag(const std::string& tag) const;
     std::vector<VideoInfo> FilterByDuration(double minSec, double maxSec) const;
     std::vector<VideoInfo> FilterByResolution(int minWidth, int minHeight) const;
 

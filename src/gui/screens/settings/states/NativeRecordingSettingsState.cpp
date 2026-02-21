@@ -1,8 +1,11 @@
 #include "gui/screens/settings/states/NativeRecordingSettingsState.h"
 
+#include "core/CoreServices.h"
+
 #include <cstring>
 #include <algorithm>
 
+#include "imgui.h"
 NativeRecordingSettingsState::NativeRecordingSettingsState() {
     RefreshDeviceLists();
     LoadFromConfig();
@@ -14,7 +17,8 @@ void NativeRecordingSettingsState::RefreshDeviceLists() {
     m_screens       = NativeRecorder::GetScreens();
 }
 void NativeRecordingSettingsState::LoadFromConfig() {
-    const auto* cfg = CoreServices::Instance().GetConfig();
+
+    auto* cfg = CoreServices::Instance().GetConfig();
     if (!cfg) return;
 
     switch (cfg->nativeAudioMode) {

@@ -135,12 +135,12 @@ bool NativeRecorder::StartRecording() {
 
 void NativeRecorder::StopRecording() {
     if (!m_recording) return;
-
     m_recording = false;
-    StopCurrentSegment();
-    if (m_thread.joinable()) m_thread.join();
 
-    printf("[NativeRecorder] Recording stopped (segments in memory)\n");
+    if (m_thread.joinable()) m_thread.join();
+    StopCurrentSegment();
+
+    printf("[NativeRecorder] Recording stopped\n");
     UpdateStatus("Ready");
 }
 
@@ -174,6 +174,7 @@ bool NativeRecorder::StartNextSegment() {
         m_screenOutput, m_audioTracks, m_videoCodec, m_fps, m_currentSegPath.string());
 
     printf("[NativeRecorder] Segment: %s\n", m_currentSegPath.filename().c_str());
+    printf("[NativeRecorder] CMD: %s\n", command.c_str());
 
     m_segPid = fork();
     if (m_segPid == 0) {
@@ -212,7 +213,7 @@ void NativeRecorder::StopCurrentSegment() {
 void NativeRecorder::PruneOldSegments() {
     const int keepSec = m_clipDuration + m_marginSec;
     const auto now    = std::chrono::steady_clock::now();
-    std::lock_guard<std::mutex> lock(m_segMutex);
+    std::lock_guard lock(m_segMutex);
     while (!m_segments.empty()) {
         const auto age = std::chrono::duration_cast<std::chrono::seconds>(
             now - m_segments.front().createdAt).count();
@@ -250,7 +251,7 @@ void NativeRecorder::SaveClip() {
 bool NativeRecorder::MergeSegments(const fs::path& out) {
     std::vector<ReplaySegment> segments;
     {
-        std::lock_guard<std::mutex> lock(m_segMutex);
+        std::lock_guard lock(m_segMutex);
         segments.assign(m_segments.begin(), m_segments.end());
     }
 

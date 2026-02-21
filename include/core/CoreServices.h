@@ -6,6 +6,7 @@
 #include "core/library/VideoLibrary.h"
 #include "core/library/VideoDatabase.h"
 #include "core/import/VideoImportService.h"
+#include "core/recording/RecordingManager.h"
 
 #include <memory>
 
@@ -13,7 +14,17 @@ class CoreServices {
 public:
     static CoreServices& Instance();
 
-    // Public accessors
+    RecordingManager* GetRecordingManager() {
+        std::lock_guard lock(m_mutex);
+
+        if (!m_initialized) { InitializeInternal(); }
+        if (!m_recordingManager) {
+            m_recordingManager = std::make_unique<RecordingManager>();
+            m_recordingManager->Initialize();
+        }
+        return m_recordingManager.get();
+    }
+
     Config* GetConfig() {
         return GetService(m_config);
     }
@@ -30,18 +41,18 @@ public:
         return GetService(m_videoImportService);
     }
 
-    bool IsInitialized() const;
+    void Initialize();
     void Shutdown();
 
 private:
     CoreServices();
-    void Initialize();
+    void InitializeInternal();
 
     // Template method
     template<typename T>
     T* GetService(std::unique_ptr<T>& service) {
-        Initialize();
         std::lock_guard lock(m_mutex);
+        if (!m_initialized) InitializeInternal();
         return service.get();
     }
 
@@ -50,8 +61,9 @@ private:
     std::unique_ptr<VideoLibrary> m_videoLibrary;
     std::unique_ptr<VideoDatabase> m_videoDatabase;
     std::unique_ptr<VideoImportService> m_videoImportService;
+    std::unique_ptr<RecordingManager> m_recordingManager;
 
-    mutable std::mutex m_mutex;
+    std::recursive_mutex m_mutex;
     bool m_initialized = false;
     ProjectPaths m_paths;
 };

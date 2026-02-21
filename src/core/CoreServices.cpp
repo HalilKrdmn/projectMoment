@@ -15,52 +15,63 @@ CoreServices& CoreServices::Instance() {
 
 void CoreServices::Initialize() {
     std::lock_guard lock(m_mutex);
+    InitializeInternal();
+}
+
+void CoreServices::InitializeInternal() {
     if (m_initialized) return;
 
-    if (!m_config || m_config->libraryPath.empty()) {
-        return;
-    }
-
     try {
+        if (!m_config) {
+            const auto loadedConfig = Config::InitializeOrCreateConfig();
+            m_config = std::make_unique<Config>(loadedConfig.value_or(Config()));
+        }
+
+        if (m_config->libraryPath.empty()) return;
+
         m_paths = ProjectPaths::FromFolder(m_config->libraryPath);
 
+        m_videoDatabase = std::make_unique<VideoDatabase>(m_paths.dbPath.string());
         m_videoLibrary = std::make_unique<VideoLibrary>(m_paths);
         m_videoImportService = std::make_unique<VideoImportService>();
-        m_videoDatabase = std::make_unique<VideoDatabase>(m_paths.dbPath.string());
 
         m_initialized = true;
         std::cout << "[CoreServices] All services initialized successfully." << std::endl;
     } catch (const std::exception& e) {
-        std::cerr << "[CoreServices] Critical initialization error: " << e.what() << std::endl;
-        Shutdown();
+        std::cerr << "[CoreServices] Init Error: " << e.what() << std::endl;
     }
 }
-
-bool CoreServices::IsInitialized() const {
-    std::lock_guard lock(m_mutex);
-    return m_initialized;
-}
-
-
 
 void CoreServices::Shutdown() {
     std::lock_guard lock(m_mutex);
-    
+
+    if (!m_initialized && !m_config) return;
+
     std::cout << "[CoreServices] Shutting down..." << std::endl;
 
-    if (m_videoLibrary) {
-        m_videoLibrary.reset();
+    if (m_recordingManager) {
+        std::cout << "[CoreServices] Stopping Recording Manager..." << std::endl;
+        m_recordingManager.reset();
     }
 
-    if (m_videoDatabase) {
-        m_videoDatabase.reset();
+    if (m_videoLibrary) {
+        std::cout << "[CoreServices] Stopping Video Library..." << std::endl;
+        m_videoLibrary.reset();
     }
 
     if (m_videoImportService) {
         m_videoImportService.reset();
     }
 
+    if (m_videoDatabase) {
+        std::cout << "[CoreServices] Closing Database..." << std::endl;
+        m_videoDatabase.reset();
+    }
+
+    if (m_config) {
+        m_config.reset();
+    }
+
     m_initialized = false;
-    
     std::cout << "[CoreServices] Shutdown complete" << std::endl;
 }

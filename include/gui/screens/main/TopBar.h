@@ -1,36 +1,30 @@
 #pragma once
 
-#include <string>
 #include <functional>
+#include <string>
 
 class MainScreen;
 class RecordingManager;
 
 struct StorageInfo {
-    size_t totalVideos = 0;
-    float usedSpaceGB = 0.0f;
-    float totalSpaceGB = 0.0f;
-    float freeSpaceGB = 0.0f;
+    size_t totalVideos  = 0;
+    float  totalSpaceGB = 0.0f;
+    float  freeSpaceGB  = 0.0f;
+    float  usedSpaceGB  = 0.0f;
 };
 
 class TopBar {
 public:
-    void Draw(MainScreen* parent, const RecordingManager* recordingManager = nullptr) const;
+    void Draw(MainScreen* parent, RecordingManager* recordingManager);
 
-    void SetOnSettingsClicked(const std::function<void()> &callback) {
-        m_onSettingsClicked = callback;
-    }
+    void DrawRecordToggleButton(RecordingManager *recordingManager);
 
-    void SetOnRecordClicked(const std::function<void()> &callback) {
-        m_onRecordClicked = callback;
-    }
+    void SetOnSettingsClicked(std::function<void()> cb) { m_onSettingsClicked = std::move(cb); }
 
 private:
-    void DrawRecordingButton(const RecordingManager *recordingManager) const;
+    void DrawClipSaveButton();
     static void DrawStorageInfo(const StorageInfo& info);
-
     static StorageInfo CalculateStorageInfo(const std::string& libraryPath, size_t videoCount);
 
     std::function<void()> m_onSettingsClicked;
-    std::function<void()> m_onRecordClicked;
 };

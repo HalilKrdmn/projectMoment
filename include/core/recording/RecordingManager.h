@@ -14,10 +14,11 @@ public:
     ~RecordingManager();
 
     void Initialize();
+    void SetOnClipSaved(std::function<void(const fs::path&)> cb);
 
     // ── Recording ───────────────────────────────────────────────────────────
-    void StartRecording() const;
-    void StopRecording() const;
+    void StartRecording();
+    void StopRecording();
     bool IsRecording() const;
 
     // ── Clip ─────────────────────────────────────────────────────────────────
@@ -33,5 +34,6 @@ private:
     void ApplyConfig() const;
 
     std::unique_ptr<NativeRecorder> m_nativeRecorder;
+    std::function<void(const fs::path&)> m_onClipSaved;
     int m_clipDuration;
 };

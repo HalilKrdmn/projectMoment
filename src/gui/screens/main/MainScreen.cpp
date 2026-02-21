@@ -36,6 +36,11 @@ void MainScreen::DetermineInitialState() {
         return;
     }
 
+    if (auto* recMgr = CoreServices::Instance().GetRecordingManager()) {
+        recMgr->SetOnClipSaved([this](const fs::path&) {
+            RefreshLibrarySilent();
+        });
+    }
     // If the file path is found, it is scanned to check for any changes.
     StartLibraryLoad();
 }

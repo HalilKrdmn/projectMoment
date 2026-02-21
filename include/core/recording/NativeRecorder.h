@@ -1,5 +1,6 @@
 #pragma once
 
+#include "core/Config.h"
 
 #include <atomic>
 #include <chrono>
@@ -10,8 +11,6 @@
 #include <string>
 #include <thread>
 #include <vector>
-
-#include "core/CoreServices.h"
 
 // ──────────────────────────────────────────────────────────────────────────
 struct ScreenInfo {
@@ -39,6 +38,7 @@ public:
 
     NativeRecorder();
     ~NativeRecorder();
+
 
     // ── Screen / hardware detection ────────────────────────────────────────
     static std::vector<ScreenInfo>  GetScreens();
@@ -93,17 +93,19 @@ private:
 
     // ── Config ────────────────────────────────────────────────────────────────
     std::vector<AudioTrack> m_audioTracks;
-    std::string  m_screenOutput;
-    std::string  m_videoCodec;
-    std::string  m_audioCodec;
-    int          m_videoBitrate;
-    int          m_audioBitrate;
-    int          m_fps;
-    int          m_clipDuration;
-    int          m_marginSec;
-    int          m_segDuration;
-    fs::path     m_outputDir;
-    fs::path     m_tempDir;
+    std::string             m_screenOutput;
+    std::string             m_videoCodec;
+    std::string             m_audioCodec;
+    int                     m_videoBitrate;
+    int                     m_audioBitrate;
+    int                     m_fps;
+    int                     m_clipDuration;
+    fs::path                m_outputDir;
+    fs::path                m_tempDir;
+
+
+    int m_marginSec = 1;
+    int m_segDuration = 1;
 
     // ── State ─────────────────────────────────────────────────────────────────
     std::atomic<bool> m_recording{false};

@@ -1,15 +1,15 @@
 #include "gui/screens/main/TopBar.h"
 
 #include "core/CoreServices.h"
-#include "core/recording/RecordingManager.h"
 #include "gui/screens/main/MainScreen.h"
 
+#include <cmath>
 #include <filesystem>
 #include <sys/statvfs.h>
 
 #include "imgui.h"
 
-void TopBar::Draw(MainScreen* parent, const RecordingManager* recordingManager) const {
+void TopBar::Draw(MainScreen* parent, RecordingManager* recordingManager) {
     constexpr float barHeight = 40.0f;
     ImGui::BeginChild("TopBar", ImVec2(0, barHeight), false, ImGuiWindowFlags_NoScrollbar);
 
@@ -18,107 +18,144 @@ void TopBar::Draw(MainScreen* parent, const RecordingManager* recordingManager) 
     const auto& videos = parent->GetCurrentVideos();
     const StorageInfo storageInfo = CalculateStorageInfo(config->libraryPath, videos.size());
 
-    constexpr float contentHeight = 40.0f;
-    ImGui::SetCursorPosY((barHeight - contentHeight) * 0.5f);
-
+    ImGui::SetCursorPosY((barHeight - 40.0f) * 0.5f);
     ImGui::BeginGroup();
     DrawStorageInfo(storageInfo);
     ImGui::EndGroup();
 
-    constexpr float recordBtnWidth = 180.0f;
-    constexpr float settingsBtnWidth = 40.0f;
-    constexpr float innerPadding = 15.0f;
-    constexpr float edgePadding = 20.0f;
-    constexpr float rightBlockWidth = recordBtnWidth + innerPadding + settingsBtnWidth + edgePadding;
+    constexpr float recBtnW      = 155.0f;
+    constexpr float clipBtnW     = 120.0f;
+    constexpr float settingsBtnW = 40.0f;
+    constexpr float gap          = 8.0f;
+    constexpr float edgePad      = 20.0f;
+    const float rightW = recBtnW + gap + clipBtnW + gap + settingsBtnW + edgePad;
 
-    ImGui::SameLine(ImGui::GetContentRegionAvail().x - rightBlockWidth);
+    ImGui::SameLine(ImGui::GetContentRegionAvail().x - rightW
+                    + ImGui::GetCursorPosX() - ImGui::GetScrollX());
     ImGui::SetCursorPosY((barHeight - 40.0f) * 0.5f);
 
-    DrawRecordingButton(recordingManager);
+    DrawRecordToggleButton(recordingManager);
+    ImGui::SameLine(0, gap);
+    DrawClipSaveButton();
 
-    ImGui::SameLine(0, 15);
-    if (ImGui::Button("S", ImVec2(settingsBtnWidth, 40))) {
+    ImGui::SameLine(0, gap);
+    ImGui::SetCursorPosY((barHeight - 40.0f) * 0.5f);
+    if (ImGui::Button("S", ImVec2(settingsBtnW, 40.0f))) {
         if (m_onSettingsClicked) m_onSettingsClicked();
     }
 
     ImGui::EndChild();
 }
 
-void TopBar::DrawRecordingButton(const RecordingManager* recordingManager) const {
-    const bool isRecording = recordingManager && recordingManager->IsRecording();
-    const ImVec2 pos = ImGui::GetCursorScreenPos();
-    constexpr auto size = ImVec2(180, 40);
-    ImDrawList* drawList = ImGui::GetWindowDrawList();
 
-    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.12f, 0.12f, 0.12f, 1.0f));
-    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.18f, 0.18f, 0.18f, 1.0f));
-    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.08f, 0.08f, 0.08f, 1.0f));
+void TopBar::DrawRecordToggleButton(RecordingManager* recordingManager) {
+    auto* recMgr = CoreServices::Instance().GetRecordingManager();
+    const bool isRecording = recMgr && recMgr->IsRecording();
+    const ImVec2 pos  = ImGui::GetCursorScreenPos();
+    constexpr ImVec2 size = { 155.0f, 40.0f };
+    ImDrawList* dl = ImGui::GetWindowDrawList();
 
-    if (ImGui::Button("##RecordBtn", size)) {
-        if (m_onRecordClicked) m_onRecordClicked();
+    if (isRecording) {
+        ImGui::PushStyleColor(ImGuiCol_Button,        ImVec4(0.12f,0.12f,0.12f,1.0f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.18f,0.18f,0.18f,1.0f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive,  ImVec4(0.08f,0.08f,0.08f,1.0f));
+    } else {
+        ImGui::PushStyleColor(ImGuiCol_Button,        ImVec4(0.14f,0.14f,0.18f,1.0f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.20f,0.20f,0.26f,1.0f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive,  ImVec4(0.10f,0.10f,0.14f,1.0f));
     }
 
+    if (ImGui::Button("##RecBtn", size)) {
+        if (recMgr) {
+            if (isRecording) recMgr->StopRecording();
+            else             recMgr->StartRecording();
+        }
+    }
     ImGui::PopStyleColor(3);
 
     constexpr float radius = 5.0f;
-    const auto dotPos = ImVec2(pos.x + 20, pos.y + size.y * 0.5f);
-    const ImVec4 dotColor = isRecording ? ImVec4(1.0f, 0.2f, 0.2f, 1.0f) : ImVec4(0.4f, 0.4f, 0.4f, 1.0f);
+    const ImVec2 dotPos = { pos.x + 18.0f, pos.y + size.y * 0.5f };
 
     if (isRecording) {
-        const float time = static_cast<float>(ImGui::GetTime());
-        for (int i = 0; i < 2; i++) {
-            const float wave = fmodf(time + (i * 0.8f), 1.5f) / 1.5f;
-            const float waveRadius = radius + (wave * 10.0f);
+        const float t = static_cast<float>(ImGui::GetTime());
+        for (int i = 0; i < 2; ++i) {
+            const float wave  = fmodf(t + i * 0.8f, 1.5f) / 1.5f;
+            const float wR    = radius + wave * 10.0f;
             const float alpha = 1.0f - wave;
-
-            drawList->PushClipRect(pos, ImVec2(pos.x + size.x, pos.y + size.y), true);
-            drawList->AddCircle(dotPos, waveRadius, ImColor(1.0f, 0.2f, 0.2f, alpha * 0.6f), 24, 1.5f);
-            drawList->PopClipRect();
+            dl->PushClipRect(pos, { pos.x + size.x, pos.y + size.y }, true);
+            dl->AddCircle(dotPos, wR, ImColor(1.0f, 0.2f, 0.2f, alpha * 0.6f), 24, 1.5f);
+            dl->PopClipRect();
         }
+        dl->AddCircleFilled(dotPos, radius, ImColor(1.0f, 0.2f, 0.2f, 1.0f), 24);
+    } else {
+        dl->AddCircleFilled(dotPos, radius, ImColor(0.35f, 0.35f, 0.40f, 1.0f), 24);
     }
 
-    drawList->AddCircleFilled(dotPos, radius, ImColor(dotColor), 24);
-
-    const char* label = isRecording ? "STOP RECORDING" : "START RECORD";
-    const ImVec2 textSize = ImGui::CalcTextSize(label);
-    const auto textPos = ImVec2(pos.x + 35, pos.y + (size.y - textSize.y) * 0.5f);
-    drawList->AddText(textPos, ImColor(1.0f, 1.0f, 1.0f, 1.0f), label);
-
-    if (recordingManager) {
-        const char* mode = recordingManager->GetMode() == RecordingMode::OBS ? "OBS" : "NAT";
-        const ImVec2 modeSize = ImGui::CalcTextSize(mode);
-        drawList->AddText(ImVec2(pos.x + size.x - modeSize.x - 10, textPos.y), ImColor(0.4f, 0.4f, 0.4f, 1.0f), mode);
-    }
+    const char* label = isRecording ? "STOP" : "START";
+    const ImVec2 ts   = ImGui::CalcTextSize(label);
+    dl->AddText({ pos.x + 32.0f, pos.y + (size.y - ts.y) * 0.5f },
+                ImColor(1.0f, 1.0f, 1.0f, 1.0f), label);
 }
 
-void TopBar::DrawStorageInfo(const StorageInfo& info) {
-    ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 12);
+void TopBar::DrawClipSaveButton() {
+    auto* recMgr = CoreServices::Instance().GetRecordingManager();
 
+    const bool isRecording = recMgr && recMgr->IsRecording();
+    const bool isSaving    = recMgr && recMgr->IsSavingClip();
+
+    ImGui::BeginDisabled(!recMgr || isSaving);
+
+    if (isSaving) {
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.2f, 0.2f, 0.2f, 1.0f));
+        ImGui::Button("Processing...", ImVec2(120.0f, 40.0f));
+        ImGui::PopStyleColor();
+    } else {
+        if (isRecording) {
+            ImGui::PushStyleColor(ImGuiCol_Button,        ImVec4(0.20f, 0.50f, 0.90f, 1.0f));
+            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.25f, 0.60f, 1.00f, 1.0f));
+            ImGui::PushStyleColor(ImGuiCol_ButtonActive,  ImVec4(0.15f, 0.40f, 0.80f, 1.0f));
+        } else {
+            ImGui::PushStyleColor(ImGuiCol_Button,        ImVec4(0.3f, 0.3f, 0.35f, 1.0f));
+            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.35f, 0.35f, 0.45f, 1.0f));
+            ImGui::PushStyleColor(ImGuiCol_ButtonActive,  ImVec4(0.25f, 0.25f, 0.30f, 1.0f));
+        }
+
+        if (ImGui::Button("SAVE CLIP", ImVec2(120.0f, 40.0f))) {
+            recMgr->SaveClip();
+        }
+        ImGui::PopStyleColor(3);
+    }
+
+    ImGui::EndDisabled();
+}
+
+
+void TopBar::DrawStorageInfo(const StorageInfo& info) {
+    ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 12.0f);
     ImGui::Text("%zu VIDEOS", info.totalVideos);
     ImGui::SameLine(0, 20);
-    ImGui::TextColored(ImVec4(0.2f, 0.2f, 0.2f, 1.0f), "|");
+    ImGui::TextColored(ImVec4(0.2f,0.2f,0.2f,1.0f), "|");
     ImGui::SameLine(0, 20);
-
     ImGui::Text("%.1f GB USED", info.usedSpaceGB);
     ImGui::SameLine(0, 20);
-    ImGui::TextColored(ImVec4(0.2f, 0.2f, 0.2f, 1.0f), "|");
+    ImGui::TextColored(ImVec4(0.2f,0.2f,0.2f,1.0f), "|");
     ImGui::SameLine(0, 20);
-
-    const ImVec4 statusColor = (info.usedSpaceGB / info.totalSpaceGB) > 0.9f ? ImVec4(1, 0.3f, 0.3f, 1) : ImVec4(0.4f, 0.8f, 0.4f, 1);
-    ImGui::TextColored(statusColor, "%.1f GB FREE", info.freeSpaceGB);
+    const float safeTotal = std::max(info.totalSpaceGB, 0.001f);
+    const ImVec4 col = (info.usedSpaceGB / safeTotal) > 0.9f
+        ? ImVec4(1.0f,0.3f,0.3f,1.0f) : ImVec4(0.4f,0.8f,0.4f,1.0f);
+    ImGui::TextColored(col, "%.1f GB FREE", info.freeSpaceGB);
 }
 
 StorageInfo TopBar::CalculateStorageInfo(const std::string& libraryPath, size_t videoCount) {
     StorageInfo info;
     info.totalVideos = videoCount;
     if (libraryPath.empty() || !std::filesystem::exists(libraryPath)) return info;
-
     struct statvfs stat;
     if (statvfs(libraryPath.c_str(), &stat) == 0) {
         constexpr double gb = 1024.0 * 1024.0 * 1024.0;
-        info.totalSpaceGB = (stat.f_blocks * static_cast<double>(stat.f_frsize)) / gb;
-        info.freeSpaceGB = (stat.f_bfree * static_cast<double>(stat.f_frsize)) / gb;
-        info.usedSpaceGB = info.totalSpaceGB - info.freeSpaceGB;
+        info.totalSpaceGB = static_cast<float>((stat.f_blocks * static_cast<double>(stat.f_frsize)) / gb);
+        info.freeSpaceGB  = static_cast<float>((stat.f_bfree  * static_cast<double>(stat.f_frsize)) / gb);
+        info.usedSpaceGB  = info.totalSpaceGB - info.freeSpaceGB;
     }
     return info;
 }

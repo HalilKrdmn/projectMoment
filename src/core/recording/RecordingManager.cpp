@@ -4,8 +4,7 @@
 
 #include <filesystem>
 
-// ──────────────────────────────────────────────────────────────────────────
-RecordingManager::RecordingManager() : m_clipDuration(0) {
+RecordingManager::RecordingManager() : m_clipDuration(60) {
     m_nativeRecorder = std::make_unique<NativeRecorder>();
 }
 
@@ -13,42 +12,42 @@ RecordingManager::~RecordingManager() {
     if (m_nativeRecorder) m_nativeRecorder->StopRecording();
 }
 
-// ─── Initialize ────────────────────────────────────────────────────────────
+// ─── Initialize ───────────────────────────────────────────────────────────────
 void RecordingManager::Initialize() {
     const Config* cfg = CoreServices::Instance().GetConfig();
+    if (!cfg) return;
 
     printf("[RecordingManager] Initialize — mod: %s\n", cfg->recordingMode.c_str());
 
-    m_clipDuration = cfg->clipDuration;
+    // clipDuration 0 ise makul bir varsayılan kullan
+    m_clipDuration = (cfg->clipDuration > 0) ? cfg->clipDuration : 60;
     ApplyConfig();
 
     if (cfg->recordingAutoStart && GetMode() == RecordingMode::NATIVE)
         StartRecording();
 
-    printf("[RecordingManager] Initialize: OKAY\n");
+    printf("[RecordingManager] Initialize: OKAY (clipDuration=%ds)\n", m_clipDuration);
 }
 
-// ─── Recording ──────────────────────────────────────────────────────────────────
-void RecordingManager::StartRecording() const {
-    if (GetMode() == RecordingMode::OBS) {
-        // m_obsController.StartReplayBuffer();
-        return;
-    }
-
+// ─── Recording ────────────────────────────────────────────────────────────────
+void RecordingManager::StartRecording() {
+    if (GetMode() == RecordingMode::OBS) return;
     if (!m_nativeRecorder) return;
 
     m_nativeRecorder->SetClipDuration(m_clipDuration);
-    m_nativeRecorder->SetOnClipSaved([](const fs::path& p, const bool ok) {
+
+    m_nativeRecorder->SetOnClipSaved([this](const fs::path& p, const bool ok) {
         printf("[RecordingManager] Clip %s: %s\n", ok ? "recorded" : "FAIL", p.c_str());
+        if (ok && m_onClipSaved) m_onClipSaved(p);
     });
 
     if (m_nativeRecorder->StartRecording())
-        printf("[RecordingManager] recording has begun (%ds clip)\n", m_clipDuration);
+        printf("[RecordingManager] Recording has begun (%ds clip)\n", m_clipDuration);
     else
         printf("[RecordingManager] Unable to start recording!\n");
 }
 
-void RecordingManager::StopRecording() const {
+void RecordingManager::StopRecording() {
     if (GetMode() == RecordingMode::OBS) {
         // m_obsController.StopReplayBuffer();
         printf("[RecordingManager] Recording stopped\n");
@@ -65,12 +64,9 @@ bool RecordingManager::IsRecording() const {
     return m_nativeRecorder && m_nativeRecorder->IsRecording();
 }
 
-// ─── Recording a clip ───────────────────────────────────────────────────────────────────────
+// ─── Clip ────────────────────────────────────────────────────────────────────
 void RecordingManager::SaveClip() const {
-    if (GetMode() == RecordingMode::OBS) {
-        // m_obsController.SendSaveReplayBuffer();
-        return;
-    }
+    if (GetMode() == RecordingMode::OBS) return;
     if (m_nativeRecorder) m_nativeRecorder->SaveClip();
 }
 
@@ -78,7 +74,11 @@ bool RecordingManager::IsSavingClip() const {
     return m_nativeRecorder && m_nativeRecorder->IsSaving();
 }
 
-// ─── Helpers ───────────────────────────────────────────────────────────────────────
+void RecordingManager::SetOnClipSaved(std::function<void(const fs::path&)> cb) {
+    m_onClipSaved = std::move(cb);
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 void RecordingManager::ApplyConfig() const {
     const Config* cfg = CoreServices::Instance().GetConfig();
     if (!cfg || !m_nativeRecorder) return;
