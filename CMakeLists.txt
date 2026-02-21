@@ -28,6 +28,8 @@ set(LIBRARY_SOURCES
 set(MEDIA_SOURCES
         src/core/media/AudioAnalyzer.cpp
         include/core/media/AudioAnalyzer.h
+        src/core/media/AudioDeviceEnumerator.cpp
+        include/core/media/AudioDeviceEnumerator.h
         src/core/import/VideoImportService.cpp
         include/core/import/VideoImportService.h
         src/core/media/MetadataEmbedder.cpp
@@ -75,6 +77,20 @@ set(GUI_MAIN_SCREENS_SOURCES
         include/gui/screens/main/states/WelcomeState.h
 )
 
+set(GUI_SETTINGS_SCREENS_SOURCES
+        src/gui/screens/settings/SettingsScreen.cpp
+        include/gui/screens/settings/SettingsScreen.h
+
+        src/gui/screens/settings/states/GeneralSettingsState.cpp
+        include/gui/screens/settings/states/GeneralSettingsState.h
+        src/gui/screens/settings/states/RecordingSettingsState.cpp
+        include/gui/screens/settings/states/RecordingSettingsState.h
+        src/gui/screens/settings/states/OBSSettingsState.cpp
+        include/gui/screens/settings/states/OBSSettingsState.h
+        src/gui/screens/settings/states/NativeRecordingSettingsState.cpp
+        include/gui/screens/settings/states/NativeRecordingSettingsState.h
+)
+
 set(GUI_EDITING_SCREENS_SOURCES
         src/gui/screens/editing/EditingScreen.cpp
         include/gui/screens/editing/EditingScreen.h
@@ -93,6 +109,7 @@ add_executable(projectMoment
         ${RECORDING_SOURCES}
         ${GUI_CORE_SOURCES}
         ${GUI_MAIN_SCREENS_SOURCES}
+        ${GUI_SETTINGS_SCREENS_SOURCES}
         ${GUI_EDITING_SCREENS_SOURCES}
 )
 
