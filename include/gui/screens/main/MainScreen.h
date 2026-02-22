@@ -1,77 +1,75 @@
 #pragma once
 
-#include "data/VideoInfo.h"
-#include "core/recording/RecordingManager.h"
 #include "gui/core/BaseScreen.h"
+#include "gui/screens/main/states/WelcomeState.h"
+#include "gui/screens/main/states/LoadingState.h"
+#include "gui/screens/main/states/VideoListState.h"
+#include "gui/screens/main/states/EmptyFolderState.h"
 #include "gui/widgets/FolderBrowser.h"
-#include "gui/screens/main/TopBar.h"
+#include "core/library/VideoLibrary.h"
 
+#include <functional>
+#include <string>
 #include <vector>
-#include <memory>
 #include <filesystem>
 
-
-struct VideoInfo;
-
-class VideoLibrary;
-class WelcomeState;
-class LoadingState;
-class VideoListState;
-class EmptyFolderState;
-
-enum class MainScreenState {
-    LOADING,
-    WELCOME,
-    EMPTY_FOLDER,
-    VIDEO_LIST
+ // ──────────────────────────────────────────────────────────────────────────
+struct StorageInfo {
+    size_t totalVideos  = 0;
+    float  totalSpaceGB = 0.0f;
+    float  usedSpaceGB  = 0.0f;
+    float  freeSpaceGB  = 0.0f;
 };
 
+enum class MainScreenState {
+    WELCOME,
+    LOADING,
+    VIDEO_LIST,
+    EMPTY_FOLDER
+};
+// ──────────────────────────────────────────────────────────────────────────
 
 class MainScreen : public BaseScreen {
 public:
     explicit MainScreen(MainWindow* manager);
 
-    // Lifecycle methods
-    void DetermineInitialState();
     void Draw() override;
 
-    // Public API
-    static bool ValidateLibraryPath();
-    void StartLibraryLoad();
-    void RefreshLibrarySilent();
-
-    // State management
-    void ChangeState(const MainScreenState state) { m_currentState = state; }
-    const char* GetCurrentWindowName() const;
-
-    // Data access
+    // ── Public API ────────────────────────────────────────────────────────────
     std::vector<VideoInfo>& GetCurrentVideos() { return m_currentVideos; }
     void SetCurrentVideos(const std::vector<VideoInfo>& videos) { m_currentVideos = videos; }
 
-    const std::filesystem::path& GetCurrentFolder() const { return m_currentFolder; }
-
-    // Component access
     FolderBrowser& GetFolderBrowser() { return m_folderBrowser; }
-    RecordingManager* GetRecordingManagerPtr() const { return m_recordingManager.get(); }
+    std::filesystem::path GetCurrentFolder() const;
+    void DetermineInitialState();
+    void SetOnSettingsClicked(std::function<void()> cb) { m_onSettingsClicked = std::move(cb); }
 
-    bool IsRecordingActive() const {return m_recordingManager && m_recordingManager->IsRecording();}
 private:
-    // State
+    // ── State ─────────────────────────────────────────────────────────────────
     MainScreenState m_currentState = MainScreenState::WELCOME;
 
-    // UI States
-    std::unique_ptr<WelcomeState> m_welcomeState;
-    std::unique_ptr<LoadingState> m_loadingState;
-    std::unique_ptr<VideoListState> m_videoListState;
+    std::unique_ptr<WelcomeState>     m_welcomeState;
+    std::unique_ptr<LoadingState>     m_loadingState;
+    std::unique_ptr<VideoListState>   m_videoListState;
     std::unique_ptr<EmptyFolderState> m_emptyFolderState;
 
-    // UI Components
-    std::unique_ptr<TopBar> m_topBar;
-    std::unique_ptr<RecordingManager> m_recordingManager;
-
-    FolderBrowser m_folderBrowser;
-
-    // Data
     std::vector<VideoInfo> m_currentVideos;
-    std::filesystem::path m_currentFolder;
+    FolderBrowser          m_folderBrowser;
+
+    // ── Callbacks ─────────────────────────────────────────────────────────────
+    std::function<void()> m_onSettingsClicked;
+
+    // ── Library helpers ───────────────────────────────────────────────────────
+    bool ValidateLibraryPath();
+    void StartLibraryLoad();
+    void RefreshLibrarySilent();
+    void ChangeState(MainScreenState state) { m_currentState = state; }
+    const char* GetCurrentWindowName() const;
+
+    // ── TopBar ─────────────────────────────────────────────────────────────────
+    void DrawTopBar();
+    void DrawRecordToggleButton();
+    void DrawClipSaveButton();
+    void DrawStorageInfo(const StorageInfo& info);
+    static StorageInfo CalculateStorageInfo(const std::string& libraryPath, size_t videoCount);
 };

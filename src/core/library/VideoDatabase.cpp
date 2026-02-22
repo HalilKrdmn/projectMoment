@@ -9,6 +9,16 @@
 namespace fs = std::filesystem;
 
 VideoDatabase::VideoDatabase(const std::string &dbPath) : db(nullptr), running(true) {
+
+    try {
+        if (const std::filesystem::path p(dbPath); p.has_parent_path() && !std::filesystem::exists(p.parent_path())) {
+            std::cout << "[VideoDatabase] Creating missing directory: " << p.parent_path() << std::endl;
+            std::filesystem::create_directories(p.parent_path());
+        }
+    } catch (const std::exception& e) {
+        std::cerr << "[VideoDatabase] Directory creation failed: " << e.what() << std::endl;
+    }
+
     std::cout << "[VideoDatabase] Opening database: " << dbPath << std::endl;
     std::cout << "[VideoDatabase] Current working directory: " << std::filesystem::current_path() << std::endl;
 

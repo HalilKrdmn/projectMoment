@@ -1,11 +1,11 @@
 #include "gui/screens/settings/states/NativeRecordingSettingsState.h"
 
+#include "gui/Theme.h"
 #include "core/CoreServices.h"
 
 #include <cstring>
 #include <algorithm>
 
-#include "imgui.h"
 NativeRecordingSettingsState::NativeRecordingSettingsState() {
     RefreshDeviceLists();
     LoadFromConfig();
@@ -17,8 +17,7 @@ void NativeRecordingSettingsState::RefreshDeviceLists() {
     m_screens       = NativeRecorder::GetScreens();
 }
 void NativeRecordingSettingsState::LoadFromConfig() {
-
-    auto* cfg = CoreServices::Instance().GetConfig();
+    const auto* cfg = CoreServices::Instance().GetConfig();
     if (!cfg) return;
 
     switch (cfg->nativeAudioMode) {
@@ -83,7 +82,7 @@ void NativeRecordingSettingsState::CheckDirty() {
 
 // ─── Conversion helpers ────────────────────────────────────────────────────
 std::vector<SelectedTrack> NativeRecordingSettingsState::TrackListFromConfig(
-    const std::vector<AudioTrack>& src, AudioDeviceType type)
+    const std::vector<AudioTrack>& src, const AudioDeviceType type)
 {
     std::vector<SelectedTrack> out;
     for (const auto& t : src) {
@@ -131,7 +130,7 @@ void NativeRecordingSettingsState::Draw() {
 
 // ─── Audio Section ──────────────────────────────────────────────────────────
 void NativeRecordingSettingsState::DrawAudioSection() {
-    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.55f,0.55f,0.60f,1.0f));
+    ImGui::PushStyleColor(ImGuiCol_Text, Theme::TEXT_MUTED);
     ImGui::TextUnformatted("AUDIO MODE");
     ImGui::PopStyleColor();
     ImGui::Spacing();
@@ -141,7 +140,7 @@ void NativeRecordingSettingsState::DrawAudioSection() {
     if (ImGui::Combo("##audio_mode", &m_audioModeIndex, modes, 3)) CheckDirty();
 
     ImGui::SameLine(0, 16.0f);
-    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f,0.5f,0.55f,1.0f));
+    ImGui::PushStyleColor(ImGuiCol_Text, Theme::TEXT_MUTED);
     switch (m_audioModeIndex) {
         case 0: ImGui::TextUnformatted("All channels mixed into a single track"); break;
         case 1: ImGui::TextUnformatted("Each channel is recorded as a separate track."); break;
@@ -154,15 +153,15 @@ void NativeRecordingSettingsState::DrawAudioSection() {
     ImGui::Separator();
     ImGui::Spacing();
 
-    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.55f,0.55f,0.60f,1.0f));
+    ImGui::PushStyleColor(ImGuiCol_Text, Theme::TEXT_MUTED);
     ImGui::TextUnformatted("AUDIO CHANNELS");
     ImGui::PopStyleColor();
 
     ImGui::SameLine();
     ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 8.0f);
-    ImGui::PushStyleColor(ImGuiCol_Button,        ImVec4(0.18f,0.18f,0.22f,1.0f));
-    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.24f,0.24f,0.30f,1.0f));
-    ImGui::PushStyleColor(ImGuiCol_ButtonActive,  ImVec4(0.14f,0.14f,0.18f,1.0f));
+    ImGui::PushStyleColor(ImGuiCol_Button,        Theme::BTN_NEUTRAL);
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, Theme::ACCENT_HOVER);
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive,  Theme::ACCENT_ACTIVE);
     if (ImGui::SmallButton("  Refresh Devices  ")) RefreshDeviceLists();
     ImGui::PopStyleColor(3);
 
@@ -189,12 +188,12 @@ void NativeRecordingSettingsState::DrawDeviceColumn(
     const float colW = ImGui::GetContentRegionAvail().x;
     constexpr float boxH = 180.0f;
 
-    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.75f,0.75f,0.80f,1.0f));
+    ImGui::PushStyleColor(ImGuiCol_Text, Theme::TEXT_PRIMARY);
     ImGui::TextUnformatted(label);
     ImGui::PopStyleColor();
     ImGui::Spacing();
 
-    ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.09f,0.09f,0.11f,1.0f));
+    ImGui::PushStyleColor(ImGuiCol_ChildBg, Theme::BG_DARK);
     ImGui::BeginChild(id, ImVec2(colW, boxH), true);
 
     int removeIdx = -1;
@@ -203,12 +202,12 @@ void NativeRecordingSettingsState::DrawDeviceColumn(
         ImGui::PushID(i);
 
         const bool isDefault = (t.deviceId == "default");
-        if (isDefault) ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.9f,0.9f,1.0f,1.0f));
+        if (isDefault) ImGui::PushStyleColor(ImGuiCol_Text, Theme::ACCENT);
         ImGui::Text("  %s", t.customName.empty() ? t.deviceId.c_str() : t.customName.c_str());
         if (isDefault) ImGui::PopStyleColor();
 
         ImGui::SameLine();
-        ImGui::PushStyleColor(ImGuiCol_Button,        ImVec4(0.6f,0.2f,0.2f,1.0f));
+        ImGui::PushStyleColor(ImGuiCol_Button,        Theme::DANGER);
         ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.8f,0.2f,0.2f,1.0f));
         ImGui::PushStyleColor(ImGuiCol_ButtonActive,  ImVec4(0.5f,0.1f,0.1f,1.0f));
         if (ImGui::SmallButton("x")) removeIdx = i;
@@ -249,7 +248,7 @@ void NativeRecordingSettingsState::DrawDeviceColumn(
 void NativeRecordingSettingsState::DrawVideoSection() {
     constexpr float labelW = 180.0f;
 
-    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.55f,0.55f,0.60f,1.0f));
+    ImGui::PushStyleColor(ImGuiCol_Text, Theme::TEXT_MUTED);
     ImGui::TextUnformatted("VIDEO");
     ImGui::PopStyleColor();
     ImGui::Spacing();
@@ -301,9 +300,9 @@ void NativeRecordingSettingsState::DrawVideoSection() {
     }
 
     ImGui::SameLine();
-    ImGui::PushStyleColor(ImGuiCol_Button,        ImVec4(0.18f,0.18f,0.22f,1.0f));
-    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.24f,0.24f,0.30f,1.0f));
-    ImGui::PushStyleColor(ImGuiCol_ButtonActive,  ImVec4(0.14f,0.14f,0.18f,1.0f));
+    ImGui::PushStyleColor(ImGuiCol_Button,        Theme::BTN_NEUTRAL);
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, Theme::ACCENT_HOVER);
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive,  Theme::ACCENT_ACTIVE);
     if (ImGui::SmallButton(" Renew ")) {
         m_screens = NativeRecorder::GetScreens();
         m_selectedScreenIdx = 0;
@@ -355,12 +354,12 @@ void NativeRecordingSettingsState::DrawVideoSection() {
     ImGui::Separator();
     ImGui::Spacing();
 
-    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.55f,0.55f,0.60f,1.0f));
+    ImGui::PushStyleColor(ImGuiCol_Text, Theme::TEXT_MUTED);
     ImGui::TextUnformatted("REPLAY BUFFER");
     ImGui::PopStyleColor();
     ImGui::Spacing();
 
-    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f,0.5f,0.55f,1.0f));
+    ImGui::PushStyleColor(ImGuiCol_Text, Theme::TEXT_MUTED);
     ImGui::TextWrapped("When the replay buffer is enabled, the selected duration is stored in memory. "
                        "When the \"Save Clip\" button is pressed, the current buffer is written to the file.");
     ImGui::PopStyleColor();
@@ -394,7 +393,7 @@ void NativeRecordingSettingsState::DrawVideoSection() {
     }
 
     ImGui::SameLine(0, 12.0f);
-    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.45f,0.45f,0.50f,1.0f));
+    ImGui::PushStyleColor(ImGuiCol_Text, Theme::TEXT_MUTED);
     char marginInfo[48];
     snprintf(marginInfo, sizeof(marginInfo), "(is stored in memory as %ds)", m_replayDuration + 5);
     ImGui::TextUnformatted(marginInfo);

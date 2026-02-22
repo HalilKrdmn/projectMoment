@@ -1,10 +1,10 @@
 #include "gui/screens/settings/states/GeneralSettingsState.h"
 
+#include "gui/Theme.h"
 #include "core/CoreServices.h"
 
 #include <cstring>
 #include <filesystem>
-
 
 GeneralSettingsState::GeneralSettingsState() {
     LoadFromConfig();
@@ -37,13 +37,13 @@ void GeneralSettingsState::CheckDirty() {
 
 // ─── Draw ──────────────────────────────────────────────────────────────────
 void GeneralSettingsState::Draw() {
-    ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.13f,0.13f,0.15f,1.0f));
+    ImGui::PushStyleColor(ImGuiCol_ChildBg, Theme::BG_CONTENT);
     ImGui::BeginChild("##general_content", ImVec2(0,0), false);
 
     constexpr float labelW = 200.0f;
     ImGui::Spacing();
 
-    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.55f,0.55f,0.60f,1.0f));
+    ImGui::PushStyleColor(ImGuiCol_Text, Theme::TEXT_MUTED);
     ImGui::TextUnformatted("General");
     ImGui::PopStyleColor();
     ImGui::Spacing();
@@ -54,9 +54,9 @@ void GeneralSettingsState::Draw() {
     if (ImGui::InputText("##lib", m_libraryPath, sizeof(m_libraryPath)))
         CheckDirty();
     ImGui::SameLine();
-    ImGui::PushStyleColor(ImGuiCol_Button,        ImVec4(0.18f,0.18f,0.22f,1.0f));
-    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.24f,0.24f,0.30f,1.0f));
-    ImGui::PushStyleColor(ImGuiCol_ButtonActive,  ImVec4(0.14f,0.14f,0.18f,1.0f));
+    ImGui::PushStyleColor(ImGuiCol_Button,        Theme::BTN_NEUTRAL);
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, Theme::ACCENT_HOVER);
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive,  Theme::ACCENT_ACTIVE);
     if (ImGui::SmallButton("  Browse  ")) { m_folderBrowser.Open(); } // TODO: NOT TESTED
     ImGui::PopStyleColor(3);
 
@@ -66,7 +66,7 @@ void GeneralSettingsState::Draw() {
             ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.3f,0.8f,0.3f,1.0f));
             ImGui::TextUnformatted("OK");
         } else {
-            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.9f,0.3f,0.3f,1.0f));
+            ImGui::PushStyleColor(ImGuiCol_Text, Theme::DANGER);
             ImGui::TextUnformatted("FAIL");
         }
         ImGui::PopStyleColor();
@@ -76,7 +76,7 @@ void GeneralSettingsState::Draw() {
     ImGui::Separator();
     ImGui::Spacing();
 
-    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.55f,0.55f,0.60f,1.0f));
+    ImGui::PushStyleColor(ImGuiCol_Text, Theme::TEXT_MUTED);
     ImGui::TextUnformatted("BEGINNING");
     ImGui::PopStyleColor();
     ImGui::Spacing();
@@ -85,7 +85,7 @@ void GeneralSettingsState::Draw() {
     ImGui::SameLine(labelW);
     if (ImGui::Checkbox("##auto_buf", &m_autoStartBuffer)) CheckDirty();
     ImGui::SameLine(0, 12);
-    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.45f,0.45f,0.50f,1.0f));
+    ImGui::PushStyleColor(ImGuiCol_Text, Theme::TEXT_MUTED);
     ImGui::TextUnformatted("The buffer starts immediately when the application opens.");
     ImGui::PopStyleColor();
 
@@ -93,7 +93,7 @@ void GeneralSettingsState::Draw() {
     ImGui::SameLine(labelW);
     if (ImGui::Checkbox("##tray_start", &m_startMinimized)) CheckDirty();
     ImGui::SameLine(0, 12);
-    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.45f,0.45f,0.50f,1.0f));
+    ImGui::PushStyleColor(ImGuiCol_Text, Theme::TEXT_MUTED);
     ImGui::TextUnformatted("The application runs in the background without opening a window.");
     ImGui::PopStyleColor();
 

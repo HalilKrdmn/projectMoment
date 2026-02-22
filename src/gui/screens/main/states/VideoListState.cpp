@@ -1,14 +1,13 @@
 #include "gui/screens/main/states/VideoListState.h"
-#include "gui/screens/main/MainScreen.h"
 
+#include "gui/Theme.h"
 #include "gui/utils/ThumbnailLoader.h"
 #include "gui/utils/FormatUtils.h"
+#include "gui/screens/main/MainScreen.h"
+#include "core/recording/RecordingManager.h"
 #include "data/VideoInfo.h"
 
 #include <algorithm>
-#include <cmath>
-
-#include "core/recording/RecordingManager.h"
 
 MainWindow* VideoListState::GetMainWindow(const MainScreen* parent) {
     return parent->GetManager();
@@ -52,9 +51,10 @@ void VideoListState::DrawVideoGrid(MainScreen* parent) {
         } else {
             ImVec2 pMin = ImGui::GetCursorScreenPos();
             auto pMax = ImVec2(pMin.x + thumbnailSize, pMin.y + tHeight);
-            ImGui::GetWindowDrawList()->AddRectFilled(pMin, pMax, IM_COL32(50, 50, 50, 255), 8.0f);
+            ImGui::GetWindowDrawList()->AddRectFilled(pMin, pMax, ImGui::GetColorU32(Theme::BG_DARK), 8.0f);
 
             ImGui::SetCursorScreenPos(ImVec2(pMin.x + 10, pMin.y + tHeight * 0.4f));
+            ImGui::PushStyleColor(ImGuiCol_Text, Theme::TEXT_MUTED);
             ImGui::TextDisabled("  Generating\n Thumbnail...");
 
             ImGui::Dummy(ImVec2(thumbnailSize, tHeight));
@@ -64,13 +64,13 @@ void VideoListState::DrawVideoGrid(MainScreen* parent) {
         ImGui::TextWrapped("%s", video.name.c_str());
 
         std::string dateStr = FormatUtils::FormatDate(video.recordingTimeMs);
-        ImGui::TextColored(ImVec4(0.7f, 0.7f, 0.7f, 1.0f), "%s", dateStr.c_str());
+        ImGui::TextColored(Theme::TEXT_MUTED, "%s", dateStr.c_str());
 
         std::string durationStr = FormatUtils::FormatDuration(video.durationSec);
         ImGui::SameLine();
-        ImGui::TextColored(ImVec4(0.7f, 0.7f, 0.7f, 1.0f), "| %s", durationStr.c_str());
+        ImGui::TextColored(Theme::TEXT_MUTED, "| %s", durationStr.c_str());
 
-        ImGui::TextColored(ImVec4(0.6f, 0.6f, 0.6f, 1.0f),
+        ImGui::TextColored(Theme::TEXT_MUTED,
                           "%dx%d", video.resolutionWidth, video.resolutionHeight);
 
         ImGui::PopTextWrapPos();

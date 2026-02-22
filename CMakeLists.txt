@@ -64,8 +64,6 @@ set(GUI_CORE_SOURCES
 set(GUI_MAIN_SCREENS_SOURCES
         src/gui/screens/main/MainScreen.cpp
         include/gui/screens/main/MainScreen.h
-        src/gui/screens/main/TopBar.cpp
-        include/gui/screens/main/TopBar.h
 
         src/gui/screens/main/states/EmptyFolderState.cpp
         include/gui/screens/main/states/EmptyFolderState.h

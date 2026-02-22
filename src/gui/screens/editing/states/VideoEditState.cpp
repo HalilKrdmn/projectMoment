@@ -6,10 +6,17 @@
 
 #include <chrono>
 #include <iostream>
+#include <thread>
 
 #include "imgui.h"
 
 VideoEditState::~VideoEditState() {
+    if (m_audioAnalyzer) {
+        m_audioAnalyzer = nullptr;
+    }
+    if (m_videoPlayer) {
+        m_videoPlayer = nullptr;
+    }
 }
 
 void VideoEditState::Draw(const EditingScreen *parent) {
@@ -30,10 +37,20 @@ void VideoEditState::Draw(const EditingScreen *parent) {
     if (!m_videoPlayer) {
         m_videoPlayer = std::make_unique<VideoPlayer>();
         if (m_videoPlayer->LoadVideo(video.filePathString)) {
-            m_audioAnalyzer = std::make_unique<AudioAnalyzer>();
-            m_audioAnalyzer->LoadAndComputeTimeline(
-                video.filePathString,
-                m_videoPlayer->GetDuration());
+            std::thread([this, path = video.filePathString, duration = m_videoPlayer->GetDuration()]() {
+                auto analyzer = std::make_unique<AudioAnalyzer>();
+                try {
+                    analyzer->LoadAndComputeTimeline(path, duration);
+                    std::cout << "Audio Analyzer done" << std::endl;
+                } catch (const std::bad_alloc& e) {
+                    std::cerr << "bad_alloc in AudioAnalyzer: " << e.what() << std::endl;
+                    return;
+                }
+                m_audioAnalyzer = std::move(analyzer);
+            }).detach();
+
+            std::cout << "Video Player memory allocated" << std::endl;
+            std::cout << "Audio Analyzer starting..." << std::endl;
 
             m_lastLoadedPath = video.filePathString;
             m_videoPlayer->Play();
@@ -518,7 +535,7 @@ void VideoEditState::DrawInfoBar(const EditingScreen* parent, const VideoInfo& v
     const float textY = pos.y + 10;
 
     // 1. File Name
-    const std::string pathLabel = "Nane: " + video.name;
+    const std::string pathLabel = "Name: " + video.name;
     drawList->AddText(ImVec2(textX, textY), IM_COL32(200, 200, 200, 255), pathLabel.c_str());
     textX += 350;
 

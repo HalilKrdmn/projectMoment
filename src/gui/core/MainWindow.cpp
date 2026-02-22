@@ -3,6 +3,7 @@
 #include "gui/screens/main/MainScreen.h"
 #include "gui/screens/settings/SettingsScreen.h"
 #include "gui/screens/editing/EditingScreen.h"
+#include "gui/Theme.h"
 
 #include <cstdio>
 
@@ -60,6 +61,8 @@ MainWindow::MainWindow(const int width, const int height, const char* title)
     ImGuiIO& io = ImGui::GetIO();
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
 
+    Theme::Apply();
+
     // Setup Platform/Renderer backends
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init("#version 330");
@@ -97,6 +100,8 @@ int MainWindow::Run() const {
 
     printf("[MainWindow] Starting main loop...\n");
 
+    constexpr auto& bg = Theme::BG_CONTENT;
+
     // Main loop
     while (!glfwWindowShouldClose(window)) {
         // Poll events
@@ -108,7 +113,7 @@ int MainWindow::Run() const {
         ImGui::NewFrame();
 
         // Clear screen
-        glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+        glClearColor(bg.x, bg.y, bg.z, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
         // Draw current screen

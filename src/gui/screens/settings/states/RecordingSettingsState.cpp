@@ -1,5 +1,6 @@
 #include "gui/screens/settings/states/RecordingSettingsState.h"
 
+#include "gui/Theme.h"
 #include "core/CoreServices.h"
 
 #include <cstring>
@@ -35,7 +36,7 @@ void RecordingSettingsState::CheckDirty() {
 void RecordingSettingsState::Draw() {
     constexpr float labelW = 200.0f;
 
-    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.55f,0.55f,0.60f,1.0f));
+    ImGui::PushStyleColor(ImGuiCol_Text, Theme::TEXT_MUTED);
     ImGui::TextUnformatted("RECORDING MODE");
     ImGui::PopStyleColor();
     ImGui::Spacing();
@@ -53,11 +54,11 @@ void RecordingSettingsState::Draw() {
 
     ImGui::Spacing();
 
-    ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.10f,0.10f,0.13f,1.0f));
+    ImGui::PushStyleColor(ImGuiCol_ChildBg, Theme::BG_DARK);
     ImGui::BeginChild("##mode_desc", ImVec2(480.0f, 54.0f), true);
     ImGui::Spacing();
     ImGui::SetCursorPosX(10.0f);
-    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.70f,0.70f,0.75f,1.0f));
+    ImGui::PushStyleColor(ImGuiCol_Text, Theme::TEXT_PRIMARY);
     if (m_modeIndex == 0)
         ImGui::TextWrapped("OBS mode delegates all recording to an OBS WebSocket connection.");
     else
@@ -70,7 +71,7 @@ void RecordingSettingsState::Draw() {
     ImGui::Separator();
     ImGui::Spacing();
 
-    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.55f,0.55f,0.60f,1.0f));
+    ImGui::PushStyleColor(ImGuiCol_Text, Theme::TEXT_MUTED);
     ImGui::TextUnformatted("HOTKEYS");
     ImGui::PopStyleColor();
     ImGui::Spacing();
@@ -80,7 +81,7 @@ void RecordingSettingsState::Draw() {
     ImGui::SetNextItemWidth(200.0f);
     if (ImGui::InputText("##hotkey_record", m_hotkeyRecordToggle, sizeof(m_hotkeyRecordToggle))) CheckDirty();
     ImGui::SameLine();
-    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f,0.5f,0.55f,1.0f));
+    ImGui::PushStyleColor(ImGuiCol_Text, Theme::TEXT_MUTED);
     ImGui::TextUnformatted("(e.g. F10)");
     ImGui::PopStyleColor();
 
@@ -89,7 +90,7 @@ void RecordingSettingsState::Draw() {
     ImGui::SetNextItemWidth(200.0f);
     if (ImGui::InputText("##hotkey_clip", m_hotkeySaveClip, sizeof(m_hotkeySaveClip))) CheckDirty();
     ImGui::SameLine();
-    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f,0.5f,0.55f,1.0f));
+    ImGui::PushStyleColor(ImGuiCol_Text, Theme::TEXT_MUTED);
     ImGui::TextUnformatted("(e.g. F11)");
     ImGui::PopStyleColor();
 
@@ -98,7 +99,7 @@ void RecordingSettingsState::Draw() {
     ImGui::SetNextItemWidth(200.0f);
     if (ImGui::InputText("##hotkey_mic", m_hotkeyToggleMic, sizeof(m_hotkeyToggleMic))) CheckDirty();
     ImGui::SameLine();
-    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f,0.5f,0.55f,1.0f));
+    ImGui::PushStyleColor(ImGuiCol_Text, Theme::TEXT_MUTED);
     ImGui::TextUnformatted("(e.g. F12)");
     ImGui::PopStyleColor();
 }

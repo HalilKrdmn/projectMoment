@@ -1,8 +1,7 @@
 #include "gui/screens/settings/states/OBSSettingsState.h"
 
+#include "gui/Theme.h"
 #include "core/CoreServices.h"
-#include "core/Config.h"
-#include "imgui.h"
 
 #include <cstring>
 #include <algorithm>
@@ -32,7 +31,7 @@ void OBSSettingsState::CheckDirty() {
 void OBSSettingsState::Draw() {
     constexpr float labelW = 200.0f;
 
-    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.55f,0.55f,0.60f,1.0f));
+    ImGui::PushStyleColor(ImGuiCol_Text, Theme::TEXT_MUTED);
     ImGui::TextUnformatted("CONNECTION");
     ImGui::PopStyleColor();
     ImGui::Spacing();

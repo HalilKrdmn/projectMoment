@@ -1,12 +1,11 @@
 #include "gui/screens/settings/SettingsScreen.h"
 
+#include "gui/Theme.h"
 #include "gui/core/MainWindow.h"
 #include "gui/screens/settings/states/GeneralSettingsState.h"
 #include "gui/screens/settings/states/RecordingSettingsState.h"
 #include "gui/screens/settings/states/OBSSettingsState.h"
 #include "gui/screens/settings/states/NativeRecordingSettingsState.h"
-
-#include "imgui.h"
 
 // ─────────────────────────────────────────────────────────────────────────────
 struct SidebarItem {
@@ -110,14 +109,14 @@ void SettingsScreen::DrawSidebar() {
         m_selectorReady = true;
     }
 
-    ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.10f, 0.10f, 0.12f, 1.00f));
+    ImGui::PushStyleColor(ImGuiCol_ChildBg, Theme::BG_DARK);
     ImGui::BeginChild("##settings_sidebar", ImVec2(SIDEBAR_WIDTH, totalH), false,
                       ImGuiWindowFlags_NoScrollbar);
 
     // ── App title ────────────────────────────────────────────────────────────
     ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 18.0f);
     ImGui::SetCursorPosX(18.0f);
-    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.55f, 0.55f, 0.60f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_Text, Theme::TEXT_MUTED);
     ImGui::TextUnformatted("SETTINGS");
     ImGui::PopStyleColor();
     ImGui::Spacing();
@@ -131,7 +130,7 @@ void SettingsScreen::DrawSidebar() {
         dl->AddRectFilled(
             ImVec2(rx, ry),
             ImVec2(rx + SIDEBAR_WIDTH - 16.0f, ry + ITEM_HEIGHT - 4.0f),
-            IM_COL32(60, 100, 200, 120),
+            Theme::SELECTOR_BG,
             6.0f
         );
     }
@@ -159,7 +158,7 @@ void SettingsScreen::DrawSidebar() {
         const ImVec2 vec2 = ImGui::GetWindowPos();
         dl->AddText(
             { vec2.x + 18.0f, vec2.y + curY + 12.0f },
-            active ? IM_COL32(255, 255, 255, 255) : IM_COL32(160, 160, 170, 255),
+            active ? ImGui::GetColorU32(Theme::TEXT_PRIMARY) : ImGui::GetColorU32(Theme::TEXT_MUTED),
             label
         );
 
@@ -177,10 +176,10 @@ void SettingsScreen::DrawSidebar() {
 
     ImGui::BeginDisabled(!dirty);
     ImGui::PushStyleColor(ImGuiCol_Button,dirty
-        ? ImVec4(0.20f, 0.50f, 0.90f, 1.0f)
-        : ImVec4(0.15f, 0.15f, 0.18f, 1.0f));
-    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.25f, 0.58f, 1.00f, 1.0f));
-    ImGui::PushStyleColor(ImGuiCol_ButtonActive,  ImVec4(0.15f, 0.40f, 0.75f, 1.0f));
+        ? Theme::ACCENT
+        : Theme::BTN_NEUTRAL);
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, Theme::ACCENT_HOVER);
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive,  Theme::ACCENT_ACTIVE);
     if (ImGui::Button("Save Changes", ImVec2(SIDEBAR_WIDTH - 16.0f, 34.0f))) SaveCurrent();
     ImGui::PopStyleColor(3);
     ImGui::EndDisabled();
@@ -198,7 +197,7 @@ void SettingsScreen::DrawContent() const {
     const float          contH = vp->WorkSize.y;
 
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
-    ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.13f, 0.13f, 0.15f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_ChildBg, Theme::BG_CONTENT);
     ImGui::BeginChild("##settings_content", ImVec2(contW, contH), false);
     ImGui::PopStyleVar();
 
@@ -209,7 +208,7 @@ void SettingsScreen::DrawContent() const {
     constexpr float BTN_PAD  = 10.0f;
 
     ImGui::SetCursorPos(ImVec2(24.0f, (HEADER_H - ImGui::GetTextLineHeight()) * 0.5f));
-    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.9f, 0.9f, 0.95f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_Text, Theme::TEXT_PRIMARY);
     auto title = "General";
     switch (m_currentSection) {
         case SettingsSection::GENERAL:          title = "General";          break;
@@ -222,9 +221,9 @@ void SettingsScreen::DrawContent() const {
 
     // X — Exit
     ImGui::SetCursorPos(ImVec2(contW - BTN_PAD - BTN_W - 20.0f, (HEADER_H - BTN_H) * 0.5f - 6.0f));
-    ImGui::PushStyleColor(ImGuiCol_Button,        ImVec4(0.18f, 0.18f, 0.22f, 1.0f));
-    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.70f, 0.20f, 0.20f, 1.0f));
-    ImGui::PushStyleColor(ImGuiCol_ButtonActive,  ImVec4(0.50f, 0.10f, 0.10f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_Button,        Theme::BTN_NEUTRAL);
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, Theme::DANGER);
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive,  Theme::DANGER);
     if (ImGui::Button("X", ImVec2(BTN_W, BTN_H)))
         GetManager()->SetApplicationState(ApplicationState::MAIN);
     ImGui::PopStyleColor(3);
@@ -270,7 +269,7 @@ void SettingsScreen::DrawDividerLine() {
 
     constexpr float gapSide = 8.0f;
     constexpr float gapMid  = 4.0f;
-    constexpr ImU32 col     = IM_COL32(80, 80, 95, 200);
+    constexpr ImU32 col     = Theme::SEPARATOR_LINE;
 
     dl->AddLine(ImVec2(wp.x + gapSide, lineY),
                 ImVec2(junctionX - gapMid, lineY), col, 1.0f);
