@@ -16,7 +16,49 @@ struct AudioTrack {
     AudioDeviceType deviceType = AudioDeviceType::Input;
 };
 
-enum class AudioMode { Mixed, Separated, Virtual };
+enum class VideoCodec {
+    H264, HEVC, AV1, VP8, VP9, HEVC_HDR, AV1_HDR, HEVC_10BIT, AV1_10BIT
+};
+
+enum class AudioCodec {
+    AAC, OPUS, FLAC
+};
+
+enum class EncoderMode {
+    GPU, CPU
+};
+
+enum class QualityPreset {
+    Ultra, VeryHigh, High, Medium, Low
+};
+
+enum class BitrateMode {
+    Auto, QP, VBR, CBR
+};
+
+enum class ReplayStorage {
+    RAM, Disk
+};
+
+enum class ContainerFormat {
+    MP4, MKV, FLV
+};
+
+enum class ColorRange {
+    Limited, Full
+};
+
+enum class FramerateMode {
+    CFR, VFR, Content
+};
+
+enum class TuneProfile {
+    Performance, Quality
+};
+
+enum class AudioMode {
+    Mixed, Separated, Virtual
+};
 
 namespace fs = std::filesystem;
 // ──────────────────────────────────────────────────────────────────────────
@@ -44,29 +86,29 @@ struct Config {
     std::string nativeScreenOutput              = "";
 
     // Codecs & Encoder
-    std::string nativeVideoCodec                = "h264";       // h264|hevc|av1|vp8|vp9|hevc_hdr|av1_hdr|hevc_10bit|av1_10bit
-    std::string nativeAudioCodec                = "opus";       // aac|opus|flac
-    std::string nativeEncoder                   = "gpu";        // gpu|cpu
-    bool nativeFallbackCpu                      = true;         // If the GPU fails, switch to the CPU
+    VideoCodec nativeVideoCodec                 = VideoCodec::H264;
+    AudioCodec nativeAudioCodec                 = AudioCodec::OPUS;
+    EncoderMode nativeEncoder                   = EncoderMode::GPU;
+    bool nativeFallbackCpu                      = true;
 
     // Quality & Bitrate
-    std::string nativeQuality                   = "very_high";  // ultra|very_high|high|medium|low
-    std::string nativeBitrateMode               = "vbr";        // auto|qp|vbr|cbr
+    QualityPreset nativeQuality                 = QualityPreset::VeryHigh;
+    BitrateMode nativeBitrateMode               = BitrateMode::VBR;
     int nativeVideoBitrate                      = 5000;
     int nativeAudioBitrate                      = 192;
     int nativeFPS                               = 60;
     int nativeClipDuration                      = 60;
 
     // Advanced
-    std::string nativeReplayStorage             = "ram";        // ram|disk
+    ReplayStorage nativeReplayStorage           = ReplayStorage::RAM;
     bool nativeShowCursor                       = true;
-    std::string nativeContainerFormat           = "mp4";        // mp4|mkv|flv
-    std::string nativeColorRange                = "limited";    // limited|full
-    std::string nativeFramerateMode             = "vfr";        // cfr|vfr|content
-    std::string nativeTune                      = "quality";    // performance|quality
+    ContainerFormat nativeContainerFormat       = ContainerFormat::MP4;
+    ColorRange nativeColorRange                 = ColorRange::Limited;
+    FramerateMode nativeFramerateMode           = FramerateMode::VFR;
+    TuneProfile nativeTune                      = TuneProfile::Quality;
 
     // Audio
-    AudioMode nativeAudioMode                   = AudioMode::Mixed; // mixed|separated|virtual
+    AudioMode nativeAudioMode                   = AudioMode::Mixed;
     std::vector<AudioTrack> nativeAudioTracks   = {};
 
     template<typename T>

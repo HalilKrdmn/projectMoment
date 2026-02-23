@@ -1,52 +1,58 @@
 #pragma once
 
-#include <vector>
 #include <string>
+#include <vector>
 
 extern "C" {
 #include <libavformat/avformat.h>
 #include <libavcodec/avcodec.h>
 #include <libswresample/swresample.h>
+#include <libavutil/channel_layout.h>
+#include <libavutil/opt.h>
 }
 
-struct AudioTrack {
-    std::string name;
-
-    std::vector<float> waveform;  // ✅ ONE value per second
-
-    float maxPeakLevel;
-    int streamIndex;
-    AVCodecContext* codecCtx;
+// NOTE: Named WaveformTrack (not AudioTrack) to avoid ODR collision with
+// the AudioTrack struct defined in the recording/config subsystem.
+struct WaveformTrack {
+    int                streamIndex  = -1;
+    std::string        name;
+    std::vector<float> waveform;       // normalized [0,1] per second
+    float              maxPeakLevel   = 0.001f;
 };
 
 class AudioAnalyzer {
 public:
-    AudioAnalyzer() = default;
     ~AudioAnalyzer();
 
     bool LoadAndComputeTimeline(const std::string& filePath, double videoDuration);
 
-    const std::vector<AudioTrack>& GetTracks() const { return m_tracks; }
+    int  GetTrackCount()   const { return (int)m_tracks.size(); }
+    int  GetTotalSeconds() const;
+
+    const std::vector<WaveformTrack>& GetTracks()              const { return m_tracks; }
+    const std::vector<float>&         GetWaveform(int idx)     const;
+
+    bool  IsTrackSilent(int trackIndex, float threshold = 0.01f) const;
     float GetGlobalMaxPeak() const { return m_globalMaxPeak; }
 
-    int GetTotalSeconds() const;
-    const std::vector<float>& GetWaveform(int trackIndex) const;
-
-    std::vector<float> GetWaveformAtTime(double currentTime, int trackIndex) const;
-    std::vector<float> GetCombinedWaveformAtTime(double currentTime) const;
-
 private:
-    AVFormatContext* m_formatCtx = nullptr;
-    std::vector<AudioTrack> m_tracks;
-    float m_globalMaxPeak = 0.1f;
-    double m_videoDuration = 0.0;
+    // Internal per-track processing state — never in the public header
+    struct TrackCtx {
+        int             streamIndex = -1;
+        AVCodecContext* codecCtx    = nullptr;
+        SwrContext*     swrCtx      = nullptr;
+        std::vector<float> rawRms;
+        float           maxPeak     = 0.001f;
+    };
 
-    SwrContext* m_swrCtx = nullptr;
-    uint8_t* m_audioBuffer = nullptr;
-    int m_audioBufferSize = 0;
-
-    void Cleanup();
     void ExtractAudioTracks();
     void PreComputeTimeline();
-    std::vector<float> ComputeWaveform(const float* samples, int sampleCount);
+    void Cleanup();
+
+    AVFormatContext*          m_formatCtx     = nullptr;
+    double                    m_videoDuration = 0.0;
+    float                     m_globalMaxPeak = 0.001f;
+
+    std::vector<WaveformTrack> m_tracks;  // final output
+    std::vector<TrackCtx>      m_ctx;     // private working state
 };

@@ -3,8 +3,6 @@
 #include "core/Config.h"
 
 #include <atomic>
-#include <chrono>
-#include <deque>
 #include <filesystem>
 #include <functional>
 #include <mutex>
@@ -23,14 +21,8 @@ struct ScreenInfo {
     int refreshRate = 60;
 };
 
-struct ReplaySegment {
-    fs::path                              path;
-    std::chrono::steady_clock::time_point createdAt;
-    float                                 durationSec = 0.0f;
-};
-
 namespace fs = std::filesystem;
-// ──────────────────────────────────────────────────────────────────────────
+ // ──────────────────────────────────────────────────────────────────────────
 
 class NativeRecorder {
 public:
@@ -39,86 +31,82 @@ public:
     NativeRecorder();
     ~NativeRecorder();
 
-
-    // ── Screen / hardware detection ────────────────────────────────────────
-    static std::vector<ScreenInfo>  GetScreens();
-    static bool                     CheckDependencies();
-    static std::string              GetCompositorType();
+    // ── Screen / hardware detection ─────────────────────────────────────────
+    static std::vector<ScreenInfo> GetScreens();
+    static bool                    CheckDependencies();
+    static std::string             GetCompositorType();
+    static bool                    IsAvailable();
+    static const std::vector<int>& GetDurationOptions();
 
     // ── Configuration ───────────────────────────────────────────────────────
     void SetAudioTracks(const std::vector<AudioTrack>& tracks);
     void SetScreen(const std::string& output);
-    void SetVideoCodec(const std::string& codec);
-    void SetAudioCodec(const std::string& codec);
-    void SetBitrates(int videoBitrate, int audioBitrate);
+    void SetVideoCodec(VideoCodec codec);
+    void SetAudioCodec(AudioCodec codec);
+    void SetEncoder(EncoderMode encoder);
+    void SetFallbackCpu(bool fallback);
+    void SetQuality(QualityPreset quality);
+    void SetBitrateMode(BitrateMode mode);
+    void SetVideoBitrate(int kbps);
+    void SetAudioBitrate(int kbps);
     void SetFPS(int fps);
     void SetClipDuration(int seconds);
+    void SetReplayStorage(ReplayStorage storage);
+    void SetShowCursor(bool show);
+    void SetContainerFormat(ContainerFormat fmt);
+    void SetColorRange(ColorRange cr);
+    void SetFramerateMode(FramerateMode fm);
+    void SetTune(TuneProfile tune);
     void SetOutputDirectory(const fs::path& dir);
-    void SetOnClipSaved(OnClipSaved cb){ m_onClipSaved = std::move(cb); }
+    void SetOnClipSaved(OnClipSaved cb) { m_onClipSaved = std::move(cb); }
+    void SetStatusCallback(const std::function<void(const std::string&)>& cb) { m_statusCallback = cb; }
 
-    // ── Recording control ────────────────────────────────────────────────────
+    // ── Recording control ──────────────────────────────────────────────────
     bool StartRecording();
     void StopRecording();
     bool IsRecording() const { return m_recording; }
 
-    // ── Save clip ─────────────────────────────────────────────────────────────
+    // ── Save clip ──────────────────────────────────────────────────────────
     void SaveClip();
     bool IsSaving() const { return m_saving; }
 
-    // ── Info ─────────────────────────────────────────────────────────────────
-    float GetBufferedSeconds() const;
-    int   GetSegmentCount()    const;
-    static const std::vector<int>& GetDurationOptions(); // {30,60,120,180,240,300}
-
-    // ── Status ────────────────────────────────────────────────────────────────
-    std::string GetStatus() const { return m_status; }
-    void SetStatusCallback(const std::function<void(const std::string&)>& cb) { m_statusCallback = cb; }
+    // ── Info ───────────────────────────────────────────────────────────────
+    float GetBufferedSeconds() const { return m_recording ? (float)m_clipDuration : 0.0f; }
+    std::string GetStatus()    const { return m_status; }
 
 private:
-    void SegmentLoop();
-    bool StartNextSegment();
-    void StopCurrentSegment();
-    void PruneOldSegments();
-    bool MergeSegments(const fs::path& out);
-
-    static bool        ExecuteCommand(const std::string& cmd, std::string& out);
-    void               UpdateStatus(const std::string& status);
-    static fs::path    MakeTempDir();
+    std::string BuildCommand() const;
+    static bool ExecuteCommand(const std::string& cmd, std::string& out);
+    void        UpdateStatus(const std::string& status);
     static std::string MakeTimestampName();
-    static std::string BuildWfRecorderCmd(const std::string& screenOutput,
-                                          const std::vector<AudioTrack>& audioTracks,
-                                          const std::string& videoCodec,
-                                          int fps,
-                                          const std::string& outputPath);
 
-    // ── Config ────────────────────────────────────────────────────────────────
+    // ── Config values ───────────────────────────────────────────────────────
     std::vector<AudioTrack> m_audioTracks;
-    std::string             m_screenOutput;
-    std::string             m_videoCodec;
-    std::string             m_audioCodec;
-    int                     m_videoBitrate;
-    int                     m_audioBitrate;
-    int                     m_fps;
-    int                     m_clipDuration;
-    fs::path                m_outputDir;
-    fs::path                m_tempDir;
+    std::string     m_screenOutput;
+    VideoCodec      m_videoCodec      = VideoCodec::H264;
+    AudioCodec      m_audioCodec      = AudioCodec::OPUS;
+    EncoderMode     m_encoder         = EncoderMode::GPU;
+    bool            m_fallbackCpu     = true;
+    QualityPreset   m_quality         = QualityPreset::VeryHigh;
+    BitrateMode     m_bitrateMode     = BitrateMode::Auto;
+    int             m_videoBitrate    = 5000;
+    int             m_audioBitrate    = 192;
+    int             m_fps             = 60;
+    int             m_clipDuration    = 60;
+    ReplayStorage   m_replayStorage   = ReplayStorage::RAM;
+    bool            m_showCursor      = true;
+    ContainerFormat m_containerFormat = ContainerFormat::MP4;
+    ColorRange      m_colorRange      = ColorRange::Limited;
+    FramerateMode   m_framerateMode   = FramerateMode::VFR;
+    TuneProfile     m_tune            = TuneProfile::Quality;
+    fs::path        m_outputDir;
 
-
-    int m_marginSec = 1;
-    int m_segDuration = 1;
-
-    // ── State ─────────────────────────────────────────────────────────────────
+    // ── State ────────────────────────────────────────────────────────────────
     std::atomic<bool> m_recording{false};
-    std::atomic<bool> m_saving  {false};
-    std::thread       m_thread;
+    std::atomic<bool> m_saving   {false};
+    pid_t             m_gsrPid   = -1;
 
-    pid_t    m_segPid = -1;
-    fs::path m_currentSegPath;
-
-    mutable std::mutex        m_segMutex;
-    std::deque<ReplaySegment> m_segments;
-
-    std::string m_status = "Ready";
-    std::function<void(const std::string&)> m_statusCallback;
-    OnClipSaved                             m_onClipSaved;
+    std::string                              m_status = "Ready";
+    std::function<void(const std::string&)>  m_statusCallback;
+    OnClipSaved                              m_onClipSaved;
 };
