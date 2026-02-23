@@ -30,7 +30,7 @@ struct Config {
     std::string libraryPath;
 
     // ─── RECORDING SETTINGS ───────────────────────────────────────────────
-    std::string recordingMode                   = "native";         // "obs" or "native"
+    std::string recordingMode                   = "native";     // "obs" or "native"
     bool recordingAutoStart                     = false;
     std::string hotkeyRecordToggle              = "F10";
     std::string hotkeySaveClip                  = "F11";
@@ -47,23 +47,23 @@ struct Config {
     std::string nativeVideoCodec                = "h264";       // h264|hevc|av1|vp8|vp9|hevc_hdr|av1_hdr|hevc_10bit|av1_10bit
     std::string nativeAudioCodec                = "opus";       // aac|opus|flac
     std::string nativeEncoder                   = "gpu";        // gpu|cpu
-    bool nativeFallbackCpu                            = true;         // If the GPU fails, switch to the CPU
+    bool nativeFallbackCpu                      = true;         // If the GPU fails, switch to the CPU
 
     // Quality & Bitrate
     std::string nativeQuality                   = "very_high";  // ultra|very_high|high|medium|low
-    std::string nativeBitrateMode                     = "vbr";        // auto|qp|vbr|cbr
+    std::string nativeBitrateMode               = "vbr";        // auto|qp|vbr|cbr
     int nativeVideoBitrate                      = 5000;
     int nativeAudioBitrate                      = 192;
     int nativeFPS                               = 60;
     int nativeClipDuration                      = 60;
 
     // Advanced
-    std::string nativeReplayStorage                   = "ram";        // ram|disk
-    bool nativeShowCursor                             = true;
-    std::string nativeContainerFormat                 = "mp4";        // mp4|mkv|flv
-    std::string nativeColorRange                      = "limited";    // limited|full
-    std::string nativeFramerateMode                   = "vfr";        // cfr|vfr|content
-    std::string nativeTune                            = "quality";    // performance|quality
+    std::string nativeReplayStorage             = "ram";        // ram|disk
+    bool nativeShowCursor                       = true;
+    std::string nativeContainerFormat           = "mp4";        // mp4|mkv|flv
+    std::string nativeColorRange                = "limited";    // limited|full
+    std::string nativeFramerateMode             = "vfr";        // cfr|vfr|content
+    std::string nativeTune                      = "quality";    // performance|quality
 
     // Audio
     AudioMode nativeAudioMode                   = AudioMode::Mixed; // mixed|separated|virtual
