@@ -6,6 +6,8 @@
 #include <vector>
 
 struct VideoInfo {
+    std::string appVersion{};
+
     // File Information
     std::filesystem::path filePath;
     std::string filePathString;
@@ -30,8 +32,6 @@ struct VideoInfo {
     long long recordingTimeMs{};
     long long lastEditTimeMs{};
 
-    std::string appVersion{};
-///////////////////////////////////////////////////////////////////////////////////
     // Audio Track Names
     std::vector<std::string> audioTrackNames;
 };

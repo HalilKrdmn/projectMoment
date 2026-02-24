@@ -1,5 +1,5 @@
 #include "gui/utils/ThumbnailLoader.h"
-#include "data/VideoInfo.h"
+#include "core/VideoInfo.h"
 #include <GL/gl.h>
 #include <filesystem>
 #include <iostream>

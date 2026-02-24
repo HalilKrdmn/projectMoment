@@ -5,7 +5,7 @@
 #include "gui/utils/FormatUtils.h"
 #include "gui/screens/main/MainScreen.h"
 #include "core/recording/RecordingManager.h"
-#include "data/VideoInfo.h"
+#include "core/VideoInfo.h"
 
 #include <algorithm>
 

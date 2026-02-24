@@ -13,7 +13,7 @@ set(CORE_SOURCES
         src/core/CoreServices.cpp
         include/core/CoreServices.h
         include/core/ProjectPaths.h
-        include/data/VideoInfo.h
+        include/core/VideoInfo.h
 )
 
 set(LIBRARY_SOURCES

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "data/VideoInfo.h"
+#include "core/VideoInfo.h"
 
 #include "core/CoreServices.h"
 

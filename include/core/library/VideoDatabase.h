@@ -1,6 +1,7 @@
 #pragma once
 
-#include "data/VideoInfo.h"
+#include "core/VideoInfo.h"
+
 #include <mutex>
 #include <queue>
 #include <string>
@@ -23,7 +24,6 @@ public:
 
     // Search and Filters
     std::vector<VideoInfo> SearchByName(const std::string& query);
-    std::vector<VideoInfo> GetVideosByTag(const std::string& tag);
 
     bool IsScanning() const;
     bool VideoExists(const std::string& filePath);
@@ -45,7 +45,6 @@ private:
     void BackgroundWorker() const;
 
     static VideoInfo ExtractVideoMetadata(const std::string& filePath);
-    static std::string CalculateFileHash();
 
     sqlite3* db;
     std::unordered_map<std::string, VideoInfo> memoryCache;

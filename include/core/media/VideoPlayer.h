@@ -1,6 +1,7 @@
 #pragma once
 
-#include "data/VideoInfo.h"
+#include "core/VideoInfo.h"
+
 #include <string>
 
 extern "C" {
