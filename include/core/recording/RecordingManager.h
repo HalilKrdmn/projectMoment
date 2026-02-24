@@ -30,9 +30,9 @@ public:
     // GetOBSRecorder
     NativeRecorder* GetNativeRecorder() const { return m_nativeRecorder.get(); }
 
-private:
     void ApplyConfig() const;
 
+private:
     std::unique_ptr<NativeRecorder> m_nativeRecorder;
     std::function<void(const fs::path&)> m_onClipSaved;
     int m_clipDuration;

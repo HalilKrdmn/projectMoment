@@ -421,10 +421,12 @@ void NativeRecordingSettingsState::SaveChanges() const {
     cfg->nativeScreenOutput  = m_screenOutput;
     cfg->nativeAudioTracks   = TrackListToConfig(m_inputTracks, m_outputTracks);
 
-    if (!cfg->Save())
-        std::cerr << "[Settings] Config save failed\n";
-    else
-        std::cout << "[Settings] Config updated\n";
+    if (!cfg->Save()) std::cerr << "[Settings] Config save failed\n";
+    CoreServices::Instance().GetRecordingManager()->ApplyConfig();
+
+    auto* mutableThis = const_cast<NativeRecordingSettingsState*>(this);
+    mutableThis->SyncOriginals();
+    mutableThis->CheckDirty();
 }
 
 // ─── Dirty tracking ───────────────────────────────────────────────────────────
