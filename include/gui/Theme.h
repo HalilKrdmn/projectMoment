@@ -3,7 +3,15 @@
 #include "imgui.h"
 
 struct Theme {
-    // ── Renkler ───────────────────────────────────────────────────────────
+    // ─── Shared Top Bar Constants  ──────────────────────────────────────────
+    static constexpr float TOPBAR_H       = 52.0f;
+    static constexpr float TOPBAR_BTN_W   = 32.0f;
+    static constexpr float TOPBAR_BTN_H   = 32.0f;
+    static constexpr float TOPBAR_BTN_PAD = 10.0f;
+    static constexpr float REC_BTN_W  = 155.0f;
+    static constexpr float CLIP_BTN_W = 120.0f;
+
+    // ── Colors ──────────────────────────────────────────────────────────────
     static constexpr ImVec4 BG_DARK        = { 0.08f, 0.08f, 0.10f, 1.0f };
     static constexpr ImVec4 BG_CONTENT     = { 0.11f, 0.11f, 0.13f, 1.0f };
     static constexpr ImVec4 ACCENT         = { 0.20f, 0.50f, 0.90f, 1.0f };
@@ -22,7 +30,7 @@ struct Theme {
     static constexpr ImU32 SEPARATOR_LINE  = IM_COL32(55, 55, 70, 200);
     static constexpr ImU32 SELECTOR_BG     = IM_COL32(40, 90, 180, 100);
 
-    // ── Global ImGui stilini uygula ───────────────────────────────────────
+    // ── Apply the Global ImGui style ───────────────────────────────────────
     static void Apply() {
         ImGuiStyle& s = ImGui::GetStyle();
         s.WindowRounding    = 6.0f;

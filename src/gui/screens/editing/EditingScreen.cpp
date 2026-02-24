@@ -1,5 +1,6 @@
 #include "gui/screens/editing/EditingScreen.h"
 
+#include "gui/Theme.h"
 #include "gui/screens/editing/states/VideoEditState.h"
 #include "gui/screens/editing/ExportWidget.h"
 #include "gui/core/MainWindow.h"
@@ -29,7 +30,16 @@ void EditingScreen::Draw() {
     ImGui::SetNextWindowPos(viewport->WorkPos);
     ImGui::SetNextWindowSize(viewport->WorkSize);
 
+    ImGui::GetBackgroundDrawList()->AddRectFilled(
+        viewport->WorkPos,
+        { viewport->WorkPos.x + viewport->WorkSize.x,
+          viewport->WorkPos.y + viewport->WorkSize.y },
+        ImGui::GetColorU32(Theme::BG_CONTENT)
+    );
+
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
     ImGui::Begin(GetCurrentWindowName(), nullptr, flags);
+    ImGui::PopStyleVar();
     m_videoEditState->Draw(this);
     ImGui::End();
 

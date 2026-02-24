@@ -19,7 +19,9 @@ void VideoListState::Draw(MainScreen* parent) {
         m_thumbnailsLoaded = true;
     }
 
-    ImGui::Separator();
+    // NOTE: No ImGui::Separator() here — the divider line is drawn by
+    // MainScreen::DrawTopBar() via the foreground draw list, keeping a
+    // single pixel-perfect line that matches SettingsScreen / EditingScreen.
     ImGui::Dummy(ImVec2(0, 10));
     DrawVideoGrid(parent);
 }

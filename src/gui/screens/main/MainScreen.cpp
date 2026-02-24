@@ -151,13 +151,19 @@ void MainScreen::Draw() {
     ImGui::SetNextWindowPos(viewport->WorkPos);
     ImGui::SetNextWindowSize(viewport->WorkSize);
 
+    ImGui::GetBackgroundDrawList()->AddRectFilled(
+        viewport->WorkPos,
+        ImVec2(viewport->WorkPos.x + viewport->WorkSize.x,
+               viewport->WorkPos.y + viewport->WorkSize.y),
+        ImGui::GetColorU32(Theme::BG_CONTENT)
+    );
+
     ImGui::Begin(GetCurrentWindowName(), nullptr, flags);
 
     if (m_currentState == MainScreenState::VIDEO_LIST ||
         m_currentState == MainScreenState::EMPTY_FOLDER)
     {
         DrawTopBar();
-        ImGui::Spacing();
     }
 
     switch (m_currentState) {
@@ -183,42 +189,67 @@ const char* MainScreen::GetCurrentWindowName() const {
 
 // ─── Top Bar ────────────────────────────────────────────────────────────────
 void MainScreen::DrawTopBar() {
-    constexpr float barHeight = 40.0f;
+    const ImGuiViewport* vp    = ImGui::GetMainViewport();
+    const float          totalW = vp->WorkSize.x;
 
+    // ── Absolute-coordinate background & divider line ─────────────────────────
+    {
+        ImDrawList* bg = ImGui::GetBackgroundDrawList();
+        const ImVec2 p0 = vp->WorkPos;
+        const ImVec2 p1 = { p0.x + totalW, p0.y + Theme::TOPBAR_H };
+        bg->AddRectFilled(p0, p1, ImGui::GetColorU32(Theme::BG_DARK));
+
+        // Full-width divider — no side gaps
+        bg->AddLine({ p0.x, p1.y }, { p1.x, p1.y }, Theme::SEPARATOR_LINE, 1.0f);
+    }
+
+    // ── Child window for interactive widgets ──────────────────────────────────
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
     ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0, 0, 0, 0));
-    ImGui::BeginChild("TopBar", ImVec2(0, barHeight), false, ImGuiWindowFlags_NoScrollbar);
-    ImGui::PopStyleColor();
+    ImGui::SetCursorPos(ImVec2(0.0f, 0.0f));
+    ImGui::BeginChild("##main_topbar", ImVec2(totalW, Theme::TOPBAR_H), false,
+                      ImGuiWindowFlags_NoScrollbar);
+    ImGui::PopStyleVar();
 
-    const auto* config      = CoreServices::Instance().GetConfig();
-    const StorageInfo info  = CalculateStorageInfo(config->libraryPath, m_currentVideos.size());
+    const auto* config     = CoreServices::Instance().GetConfig();
+    const StorageInfo info = CalculateStorageInfo(config->libraryPath, m_currentVideos.size());
 
+    // ── Storage info (left, vertically centered) ──────────────────────────────
+    ImGui::SetCursorPosY((Theme::TOPBAR_H - ImGui::GetTextLineHeight()) * 0.5f);
+    ImGui::SetCursorPosX(24.0f);
     ImGui::BeginGroup();
     DrawStorageInfo(info);
     ImGui::EndGroup();
 
-    constexpr float recBtnW      = 155.0f;
-    constexpr float clipBtnW     = 120.0f;
-    constexpr float settingsBtnW = 40.0f;
-    constexpr float gap          = 8.0f;
-    constexpr float edgePad      = 20.0f;
-    constexpr float rightW = recBtnW + gap + clipBtnW + gap + settingsBtnW + edgePad;
+    // ── Right-side buttons ────────────────────────────────────────────────────
+    constexpr float gap     = 8.0f;
+    constexpr float edgePad = 20.0f;
+    constexpr float rightW  = Theme::REC_BTN_W + gap
+                            + Theme::CLIP_BTN_W + gap
+                            + Theme::TOPBAR_BTN_W + edgePad;
 
-    ImGui::SameLine(ImGui::GetContentRegionAvail().x - rightW
-                    + ImGui::GetCursorPosX() - ImGui::GetScrollX());
+    const float btnY = (Theme::TOPBAR_H - Theme::TOPBAR_BTN_H) * 0.5f;
+
+    ImGui::SameLine(totalW - rightW);
+    ImGui::SetCursorPosY(btnY);
 
     DrawRecordToggleButton();
     ImGui::SameLine(0, gap);
+    ImGui::SetCursorPosY(btnY);
     DrawClipSaveButton();
     ImGui::SameLine(0, gap);
 
+    // ── Settings button ───────────────────────────────────────────────────────
+    ImGui::SetCursorPosY(btnY);
     ImGui::PushStyleColor(ImGuiCol_Button,        Theme::BTN_NEUTRAL);
     ImGui::PushStyleColor(ImGuiCol_ButtonHovered, Theme::ACCENT);
     ImGui::PushStyleColor(ImGuiCol_ButtonActive,  Theme::ACCENT_ACTIVE);
-    if (ImGui::Button("S", ImVec2(settingsBtnW, 40.0f)))
+    if (ImGui::Button("S", ImVec2(Theme::TOPBAR_BTN_W, Theme::TOPBAR_BTN_H)))
         if (m_onSettingsClicked) m_onSettingsClicked();
     ImGui::PopStyleColor(3);
 
     ImGui::EndChild();
+    ImGui::PopStyleColor();
 }
 
 void MainScreen::DrawRecordToggleButton() {
@@ -226,7 +257,7 @@ void MainScreen::DrawRecordToggleButton() {
     const bool isRecording = recMgr && recMgr->IsRecording();
 
     const ImVec2  pos  = ImGui::GetCursorScreenPos();
-    constexpr ImVec2 size = { 155.0f, 40.0f };
+    constexpr ImVec2 size = { Theme::REC_BTN_W, Theme::TOPBAR_BTN_H };
     ImDrawList* dl = ImGui::GetWindowDrawList();
 
     if (isRecording) {
@@ -283,7 +314,7 @@ void MainScreen::DrawClipSaveButton() {
         ImGui::PushStyleColor(ImGuiCol_ButtonHovered, Theme::BTN_NEUTRAL);
         ImGui::PushStyleColor(ImGuiCol_ButtonActive,  Theme::BTN_NEUTRAL);
         ImGui::PushStyleColor(ImGuiCol_Text,          Theme::TEXT_MUTED);
-        ImGui::Button("Processing...", ImVec2(120.0f, 40.0f));
+        ImGui::Button("Processing...", ImVec2(Theme::CLIP_BTN_W, Theme::TOPBAR_BTN_H));
         ImGui::PopStyleColor(4);
     } else {
         if (isRecording) {
@@ -295,7 +326,7 @@ void MainScreen::DrawClipSaveButton() {
             ImGui::PushStyleColor(ImGuiCol_ButtonHovered, Theme::BTN_HOVER);
             ImGui::PushStyleColor(ImGuiCol_ButtonActive,  Theme::BTN_ACTIVE);
         }
-        if (ImGui::Button("SAVE CLIP", ImVec2(120.0f, 40.0f)))
+        if (ImGui::Button("SAVE CLIP", ImVec2(Theme::CLIP_BTN_W, Theme::TOPBAR_BTN_H)))
             recMgr->SaveClip();
         ImGui::PopStyleColor(3);
     }
@@ -304,8 +335,6 @@ void MainScreen::DrawClipSaveButton() {
 }
 
 void MainScreen::DrawStorageInfo(const StorageInfo& info) {
-    ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 12.0f);
-
     ImGui::Text("%zu VIDEOS", info.totalVideos);
 
     ImGui::SameLine(0, 16);

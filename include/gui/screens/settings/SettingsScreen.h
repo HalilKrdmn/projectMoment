@@ -27,7 +27,6 @@ public:
 private:
     void DrawSidebar();
     void DrawContent() const;
-    static void DrawDividerLine();
 
     void SelectSection(SettingsSection section);
 

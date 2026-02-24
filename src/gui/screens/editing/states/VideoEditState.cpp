@@ -1,5 +1,6 @@
 #include <gui/screens/editing/states/VideoEditState.h>
 
+#include "gui/Theme.h"
 #include "gui/core/MainWindow.h"
 #include "gui/screens/editing/EditingScreen.h"
 #include "gui/utils/FormatUtils.h"
@@ -32,7 +33,7 @@ static ImU32 TrackBgColor(int i) {
 
 VideoEditState::~VideoEditState() {
     {
-        std::lock_guard<std::mutex> lock(m_analyzerMutex);
+        std::lock_guard lock(m_analyzerMutex);
         m_pendingAnalyzer.reset();
         m_audioAnalyzer.reset();
     }
@@ -47,7 +48,7 @@ void VideoEditState::Draw(const EditingScreen* parent) {
 
     if (m_videoPlayer && m_lastLoadedPath != video.filePathString) {
         m_videoPlayer.reset();
-        std::lock_guard<std::mutex> lock(m_analyzerMutex);
+        std::lock_guard lock(m_analyzerMutex);
         m_audioAnalyzer.reset();
         m_pendingAnalyzer.reset();
     }
@@ -89,7 +90,7 @@ void VideoEditState::Draw(const EditingScreen* parent) {
 
     // Swap pending → active (main thread only)
     {
-        std::lock_guard<std::mutex> lock(m_analyzerMutex);
+        std::lock_guard lock(m_analyzerMutex);
         if (m_pendingAnalyzer) {
             m_audioAnalyzer  = std::move(m_pendingAnalyzer);
             m_pendingAnalyzer = nullptr;
@@ -115,7 +116,7 @@ void VideoEditState::Draw(const EditingScreen* parent) {
 
 void VideoEditState::DrawVideoPlayer() const {
     ImGui::BeginChild("VideoPlayer",
-                      ImVec2(0, ImGui::GetContentRegionAvail().y * 0.75f), true);
+                      ImVec2(0, ImGui::GetContentRegionAvail().y * 0.75f), false);
     ImDrawList* dl = ImGui::GetWindowDrawList();
     ImVec2 pos = ImGui::GetCursorScreenPos(), size = ImGui::GetContentRegionAvail();
     dl->AddRectFilled(pos, ImVec2(pos.x+size.x, pos.y+size.y), IM_COL32(0,0,0,0));
@@ -131,21 +132,22 @@ void VideoEditState::DrawVideoPlayer() const {
 }
 
 void VideoEditState::DrawTimeline(const EditingScreen* parent, const VideoInfo&) {
-    ImGui::BeginChild("Timeline", ImVec2(0, ImGui::GetContentRegionAvail().y), true);
+    const ImVec2 tlAvail = ImGui::GetContentRegionAvail();
+    ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 10.0f);
+    ImGui::BeginChild("Timeline", ImVec2(tlAvail.x - 20.0f, tlAvail.y), false);
     ImDrawList* dl = ImGui::GetWindowDrawList();
     ImVec2 cPos = ImGui::GetCursorScreenPos(), cSize = ImGui::GetContentRegionAvail();
     dl->AddRectFilled(cPos, ImVec2(cPos.x+cSize.x, cPos.y+cSize.y), IM_COL32(0,0,0,0));
 
+    constexpr float HPAD = 10.0f;
+    cPos.x  += HPAD;
+    cSize.x -= HPAD * 2.0f;
+
     constexpr float headerH = 50.0f;
     DrawTimelineHeader(parent, cPos, ImVec2(cSize.x, headerH));
 
-    // ── Determine how many rows to show ──────────────────────────────────────
-    // Prefer config-defined tracks so all configured channels are visible,
-    // even if the recorded file merged them into fewer streams.
     const Config* cfg = CoreServices::Instance().GetConfig();
-
-    // Build display track list: name + whether it has real waveform data
-    struct DisplayTrack { std::string name; int analyzerIdx; }; // analyzerIdx=-1 → silent
+    struct DisplayTrack { std::string name; int analyzerIdx; };
     std::vector<DisplayTrack> displayTracks;
 
     if (m_audioAnalyzer) {
@@ -159,11 +161,11 @@ void VideoEditState::DrawTimeline(const EditingScreen* parent, const VideoInfo&)
         }
 
         // Use whichever is larger: file tracks or configured tracks
-        const int totalRows = std::max(fileTrackCount, (int)cfgNames.size());
+        const int totalRows = std::max(fileTrackCount, static_cast<int>(cfgNames.size()));
         for (int i = 0; i < totalRows; i++) {
             DisplayTrack dt;
             // Name: prefer config name, fall back to analyzer name
-            if (i < (int)cfgNames.size() && !cfgNames[i].empty())
+            if (i < static_cast<int>(cfgNames.size()) && !cfgNames[i].empty())
                 dt.name = cfgNames[i];
             else if (i < fileTrackCount)
                 dt.name = m_audioAnalyzer->GetTracks()[i].name;
@@ -179,7 +181,7 @@ void VideoEditState::DrawTimeline(const EditingScreen* parent, const VideoInfo&)
             for (const auto& t : cfg->nativeAudioTracks) {
                 DisplayTrack dt;
                 dt.name        = t.name.empty() ? t.device : t.name;
-                dt.analyzerIdx = -2; // -2 = loading
+                dt.analyzerIdx = -2;
                 displayTracks.push_back(std::move(dt));
             }
         }
@@ -188,8 +190,8 @@ void VideoEditState::DrawTimeline(const EditingScreen* parent, const VideoInfo&)
         }
     }
 
-    const int totalRows  = 1 + (int)displayTracks.size();
-    const float trackH   = (cSize.y - headerH) / (float)totalRows;
+    const int totalRows  = 1 + static_cast<int>(displayTracks.size());
+    const float trackH   = (cSize.y - headerH) / static_cast<float>(totalRows);
 
     // Row 0: Clip (video)
     DrawEmptyTrackBoxFull(ImVec2(cPos.x, cPos.y+headerH), ImVec2(cSize.x, trackH), "Clip");
@@ -219,7 +221,7 @@ void VideoEditState::DrawTimeline(const EditingScreen* parent, const VideoInfo&)
 }
 
 void VideoEditState::DrawTimelineHeader(const EditingScreen* parent,
-                                        ImVec2 pos, ImVec2 size) {
+                                        const ImVec2 pos, const ImVec2 size) {
     ImDrawList* dl = ImGui::GetWindowDrawList();
     dl->AddRectFilled(pos, ImVec2(pos.x+size.x, pos.y+size.y), IM_COL32(0,0,0,0));
 
@@ -330,9 +332,9 @@ void VideoEditState::DrawTrackBoxFull(ImVec2 pos, ImVec2 size, const char* label
         const auto& wf  = m_audioAnalyzer->GetWaveform(ti);
         const int tsec  = m_audioAnalyzer->GetTotalSeconds();
         if (tsec > 0) {
-            const float pps = ww / float(tsec);
+            const float pps = ww / static_cast<float>(tsec);
             const ImU32 col = TrackWaveColor(ti);
-            for (int s = 0; s < (int)wf.size(); s++) {
+            for (int s = 0; s < static_cast<int>(wf.size()); s++) {
                 const float bh=size.y*0.45f*wf[s], bx=wx+s*pps;
                 dl->AddRectFilled(ImVec2(bx,cy-bh), ImVec2(bx+pps-1,cy), col);
                 dl->AddRectFilled(ImVec2(bx,cy),    ImVec2(bx+pps-1,cy+bh), col);
@@ -362,40 +364,71 @@ void VideoEditState::DrawTrackBoxFull(ImVec2 pos, ImVec2 size, const char* label
 }
 
 void VideoEditState::DrawInfoBar(const EditingScreen* parent, const VideoInfo& video) const {
-    ImGui::BeginChild("InfoBar", ImVec2(0,40), true);
-    ImDrawList* dl = ImGui::GetWindowDrawList();
-    ImVec2 pos=ImGui::GetCursorScreenPos(), size=ImGui::GetContentRegionAvail();
-    dl->AddRectFilled(pos, ImVec2(pos.x+size.x, pos.y+size.y), IM_COL32(40,40,80,255));
+    const ImGuiViewport* vp    = ImGui::GetMainViewport();
+    const float          totalW = vp->WorkSize.x;
 
+    // Background + divider line via draw lists
+    {
+        ImDrawList* bg = ImGui::GetBackgroundDrawList();
+        const ImVec2 p0 = vp->WorkPos;
+        const ImVec2 p1 = { p0.x + totalW, p0.y + Theme::TOPBAR_H };
+        bg->AddRectFilled(p0, p1, ImGui::GetColorU32(Theme::BG_DARK));
+    }
+    {
+        ImDrawList* fg = ImGui::GetForegroundDrawList();
+        const ImVec2 p0 = vp->WorkPos;
+        const float  lineY = p0.y + Theme::TOPBAR_H;
+        fg->AddLine({ p0.x, lineY }, { p0.x + totalW, lineY }, Theme::SEPARATOR_LINE, 1.0f);
+    }
+
+    // Child window for widgets (transparent over the bg rect)
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+    ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0, 0, 0, 0));
+    ImGui::SetCursorPos(ImVec2(0.0f, 0.0f));
+    ImGui::BeginChild("InfoBar", ImVec2(totalW, Theme::TOPBAR_H), false,
+                      ImGuiWindowFlags_NoScrollbar);
+    ImGui::PopStyleVar();
+
+    //Info text (left, vertically centered)
+    ImDrawList* dl  = ImGui::GetWindowDrawList();
+    ImVec2      pos = ImGui::GetWindowPos();
     const Config* cfg = CoreServices::Instance().GetConfig();
 
-    float tx=pos.x+10; const float ty=pos.y+10;
-    dl->AddText(ImVec2(tx,ty), IM_COL32(200,200,200,255), ("Name: "+video.name).c_str()); tx+=350;
+    const float ty = pos.y + (Theme::TOPBAR_H - ImGui::GetTextLineHeight()) * 0.5f;
+    float tx = pos.x + 24.0f;
+
+    dl->AddText(ImVec2(tx, ty), ImGui::GetColorU32(Theme::TEXT_PRIMARY),
+                ("Name: " + video.name).c_str());
+    tx += 350.0f;
 
     char buf[128];
-    snprintf(buf,sizeof(buf),"Size: %.1f MB", video.fileSize/(1024.0*1024.0));
-    dl->AddText(ImVec2(tx,ty), IM_COL32(150,200,150,255), buf); tx+=150;
+    snprintf(buf, sizeof(buf), "Size: %.1f MB", video.fileSize / (1024.0 * 1024.0));
+    dl->AddText(ImVec2(tx, ty), ImGui::GetColorU32(Theme::TEXT_PRIMARY), buf);
+    tx += 150.0f;
 
-    snprintf(buf,sizeof(buf),"Res: %dx%d", m_videoPlayer->GetWidth(), m_videoPlayer->GetHeight());
-    dl->AddText(ImVec2(tx,ty), IM_COL32(150,150,200,255), buf); tx+=160;
+    snprintf(buf, sizeof(buf), "Res: %dx%d",
+             m_videoPlayer->GetWidth(), m_videoPlayer->GetHeight());
+    dl->AddText(ImVec2(tx, ty), ImGui::GetColorU32(Theme::TEXT_PRIMARY), buf);
+    tx += 160.0f;
 
     if (m_audioAnalyzer || cfg) {
-        // Show configured track count (not file stream count, which may be merged)
-        int cfgTrackCount = cfg ? (int)cfg->nativeAudioTracks.size() : 0;
+        int cfgTrackCount  = cfg ? (int)cfg->nativeAudioTracks.size() : 0;
         int fileTrackCount = m_audioAnalyzer ? m_audioAnalyzer->GetTrackCount() : 0;
-        int displayCount = std::max(cfgTrackCount, fileTrackCount);
-
+        int displayCount   = std::max(cfgTrackCount, fileTrackCount);
         if (displayCount > 0) {
             snprintf(buf, sizeof(buf), "Audio: %d track(s)", displayCount);
-            dl->AddText(ImVec2(tx,ty), IM_COL32(180,180,220,255), buf);
+            dl->AddText(ImVec2(tx, ty), ImGui::GetColorU32(Theme::TEXT_PRIMARY), buf);
         }
     }
 
-    ImGui::SetCursorScreenPos(ImVec2(pos.x+size.x-80, pos.y+(size.y-20)/2));
-    ImGui::PushStyleColor(ImGuiCol_Button,        ImVec4(0.6f,0.2f,0.2f,1));
-    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.8f,0.3f,0.3f,1));
-    ImGui::PushStyleColor(ImGuiCol_ButtonActive,  ImVec4(0.5f,0.1f,0.1f,1));
-    if (ImGui::Button("Back", ImVec2(70,20))) parent->Close();
+    constexpr float btnY = (Theme::TOPBAR_H - Theme::TOPBAR_BTN_H) * 0.5f;
+    ImGui::SetCursorPos(ImVec2(totalW - Theme::TOPBAR_BTN_PAD - Theme::TOPBAR_BTN_W - 10.0f, btnY));
+    ImGui::PushStyleColor(ImGuiCol_Button,        Theme::BTN_NEUTRAL);
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, Theme::DANGER);
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive,  Theme::DANGER);
+    if (ImGui::Button("X", ImVec2(Theme::TOPBAR_BTN_W, Theme::TOPBAR_BTN_H))) parent->Close();
     ImGui::PopStyleColor(3);
+
     ImGui::EndChild();
+    ImGui::PopStyleColor(); // ChildBg
 }
