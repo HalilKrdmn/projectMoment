@@ -72,6 +72,8 @@ MainWindow::MainWindow(const int width, const int height, const char* title)
     config.MergeMode = true;
     config.PixelSnapH = true;
     config.GlyphMinAdvanceX = 32.0f;
+    config.GlyphOffset.y = 11.0f;
+    config.GlyphOffset.x = -7.0f;
 
     static constexpr ImWchar icon_ranges[] = { ICON_MIN_CUS, ICON_MAX_CUS, 0 };
     io.Fonts->AddFontFromFileTTF("../include/gui/IconsCustom.ttf", 32.0f, &config, icon_ranges);

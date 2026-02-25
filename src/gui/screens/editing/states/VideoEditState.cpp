@@ -1,5 +1,6 @@
 #include <gui/screens/editing/states/VideoEditState.h>
 
+#include "gui/IconsCustom.h"
 #include "gui/Theme.h"
 #include "gui/core/MainWindow.h"
 #include "gui/screens/editing/EditingScreen.h"
@@ -57,8 +58,9 @@ VideoEditState::~VideoEditState() {
 // ──────────────────────────────────────────────────────────────────────────────
 float VideoEditState::ComputeTimelineHeight() const {
     int audioRows = MIN_AUDIO;
-    const Config* cfg = CoreServices::Instance().GetConfig();
-    if (cfg)               audioRows = std::max(audioRows, static_cast<int>(cfg->nativeAudioTracks.size()));
+    if (const Config* cfg = CoreServices::Instance().GetConfig())
+        audioRows = std::max(audioRows,
+        static_cast<int>(cfg->nativeAudioTracks.size()));
     if (m_audioAnalyzer)   audioRows = std::max(audioRows, m_audioAnalyzer->GetTrackCount());
     return HEADER_H + (1 + audioRows) * TRACK_H + BOTTOM_PAD;
 }
@@ -122,8 +124,7 @@ void VideoEditState::Draw(const EditingScreen* parent) {
     }
 
     const auto now   = std::chrono::high_resolution_clock::now();
-    float deltaTime  = std::chrono::duration_cast<std::chrono::milliseconds>(
-                           now - m_lastFrameTime).count() / 1000.0f;
+    float deltaTime  = std::chrono::duration_cast<std::chrono::milliseconds>(now - m_lastFrameTime).count() / 1000.0f;
     m_lastFrameTime  = now;
     deltaTime        = std::clamp(deltaTime, 0.001f, 0.1f);
 
@@ -147,17 +148,20 @@ void VideoEditState::DrawVideoPlayer(const float reservedTimelineH) const {
 
     ImGui::BeginChild("VideoPlayer", ImVec2(0, vpH), false);
     ImDrawList* dl  = ImGui::GetWindowDrawList();
-    ImVec2 pos  = ImGui::GetCursorScreenPos();
-    ImVec2 size = ImGui::GetContentRegionAvail();
+    const ImVec2 pos  = ImGui::GetCursorScreenPos();
+    const ImVec2 size = ImGui::GetContentRegionAvail();
     dl->AddRectFilled(pos, ImVec2(pos.x+size.x, pos.y+size.y), IM_COL32(0,0,0,0));
 
     const float avH = size.y - 20, avW = size.x - 20;
-    const float ar  = (float)m_videoPlayer->GetWidth() / (float)m_videoPlayer->GetHeight();
+    const float ar  = static_cast<float>(m_videoPlayer->GetWidth()) / static_cast<float>(m_videoPlayer->GetHeight());
     float dW = avH * ar, dH = avH;
     if (dW > avW) { dW = avW; dH = dW / ar; }
 
     ImGui::SetCursorScreenPos(ImVec2(pos.x + (size.x - dW) / 2, pos.y + 10));
-    ImGui::Image(m_videoPlayer->GetFrameTexture(), ImVec2(dW, dH), ImVec2(0,0), ImVec2(1,1));
+    ImGui::Image(m_videoPlayer->GetFrameTexture(),
+        ImVec2(dW, dH),
+        ImVec2(0,0),
+        ImVec2(1,1));
     ImGui::EndChild();
 }
 
@@ -174,10 +178,10 @@ void VideoEditState::DrawTimeline(const EditingScreen* parent, const VideoInfo&)
     cPos.x  += HPAD;
     cSize.x -= HPAD * 2.0f;
 
-    // ── Header ──
+    // Header
     DrawTimelineHeader(parent, cPos, ImVec2(cSize.x, HEADER_H));
 
-    // ── Build display tracks ──
+    // Build display tracks
     const Config* cfg = CoreServices::Instance().GetConfig();
     struct DisplayTrack {
         std::string     name;
@@ -192,16 +196,16 @@ void VideoEditState::DrawTimeline(const EditingScreen* parent, const VideoInfo&)
         std::vector<std::string>     cfgNames;
         std::vector<AudioDeviceType> cfgTypes;
         if (cfg) {
-            for (const auto& t : cfg->nativeAudioTracks) {
-                cfgNames.push_back(t.name.empty() ? t.device : t.name);
-                cfgTypes.push_back(t.deviceType);
+            for (const auto&[name, device, deviceType] : cfg->nativeAudioTracks) {
+                cfgNames.push_back(name.empty() ? device : name);
+                cfgTypes.push_back(deviceType);
             }
         }
 
-        const int totalRows = std::max(fileTrackCount, (int)cfgNames.size());
+        const int totalRows = std::max(fileTrackCount, static_cast<int>(cfgNames.size()));
         for (int i = 0; i < totalRows; i++) {
             DisplayTrack dt;
-            if (i < (int)cfgNames.size() && !cfgNames[i].empty())
+            if (i < static_cast<int>(cfgNames.size()) && !cfgNames[i].empty())
                 dt.name = cfgNames[i];
             else if (i < fileTrackCount)
                 dt.name = m_audioAnalyzer->GetTracks()[i].name;
@@ -209,16 +213,16 @@ void VideoEditState::DrawTimeline(const EditingScreen* parent, const VideoInfo&)
                 dt.name = "Audio Track " + std::to_string(i + 1);
 
             dt.analyzerIdx = (i < fileTrackCount) ? i : -1;
-            dt.deviceType  = (i < (int)cfgTypes.size()) ? cfgTypes[i] : AudioDeviceType::Input;
+            dt.deviceType  = (i < static_cast<int>(cfgTypes.size())) ? cfgTypes[i] : AudioDeviceType::Input;
             displayTracks.push_back(std::move(dt));
         }
     } else {
         if (cfg) {
-            for (const auto& t : cfg->nativeAudioTracks) {
+            for (const auto&[name, device, deviceType] : cfg->nativeAudioTracks) {
                 DisplayTrack dt;
-                dt.name        = t.name.empty() ? t.device : t.name;
+                dt.name        = name.empty() ? device : name;
                 dt.analyzerIdx = -2;  // loading placeholder
-                dt.deviceType  = t.deviceType;
+                dt.deviceType  = deviceType;
                 displayTracks.push_back(std::move(dt));
             }
         }
@@ -226,19 +230,19 @@ void VideoEditState::DrawTimeline(const EditingScreen* parent, const VideoInfo&)
             displayTracks.push_back({"Audio", -2, AudioDeviceType::Input});
     }
 
-    // ── Clamp to minimum audio rows ──
-    const int audioRows = std::max(MIN_AUDIO, (int)displayTracks.size());
+    // Clamp to minimum audio rows
+    const int audioRows = std::max(MIN_AUDIO, static_cast<int>(displayTracks.size()));
 
-    // ── Layout: tracks are bottom-anchored with BOTTOM_PAD gap ──
+    // Layout: tracks are bottom-anchored with BOTTOM_PAD gap
     const float totalTracksH = (1 + audioRows) * TRACK_H;
     const float tracksTopY   = cPos.y + cSize.y - totalTracksH - BOTTOM_PAD;
 
-    // ── Clip row (always first / topmost) ──
-    const ImVec2 clipPos = ImVec2(cPos.x, tracksTopY);
-    const ImVec2 clipSz  = ImVec2(cSize.x, TRACK_H);
+    // Clip row (always first / topmost)
+    const auto clipPos = ImVec2(cPos.x, tracksTopY);
+    const auto clipSz  = ImVec2(cSize.x, TRACK_H);
     DrawClipTrack(clipPos, clipSz);
 
-    // ── Vertical separator between label column and waveform area ──
+    // Vertical separator between label column and waveform area
     {
         const float sepX = cPos.x + LABEL_W - 2.0f;
         const float top  = tracksTopY;
@@ -247,48 +251,48 @@ void VideoEditState::DrawTimeline(const EditingScreen* parent, const VideoInfo&)
                     Theme::TL_COL_SEP, 1.5f);
     }
 
-    // ── Audio rows ──
+    // Audio rows
     for (int i = 0; i < audioRows; i++) {
-        const ImVec2 tp = ImVec2(cPos.x, tracksTopY + TRACK_H * (i + 1));
-        const ImVec2 ts = ImVec2(cSize.x, TRACK_H);
+        const auto tp = ImVec2(cPos.x, tracksTopY + TRACK_H * (i + 1));
+        const auto ts = ImVec2(cSize.x, TRACK_H);
 
-        if (i >= (int)displayTracks.size()) {
+        if (i >= static_cast<int>(displayTracks.size())) {
             // Empty filler row (to meet MIN_AUDIO)
             dl->AddRectFilled(tp, ImVec2(tp.x+ts.x, tp.y+ts.y), Theme::TL_EMPTY_BG);
             dl->AddRect      (tp, ImVec2(tp.x+ts.x, tp.y+ts.y), Theme::TL_EMPTY_BORDER);
             continue;
         }
 
-        const auto& dt = displayTracks[i];
+        const auto&[name, analyzerIdx, deviceType] = displayTracks[i];
 
-        if (dt.analyzerIdx == -2) {
+        if (analyzerIdx == -2) {
             // Loading placeholder
-            dl->AddRectFilled(tp, ImVec2(tp.x+ts.x, tp.y+ts.y), BgColor(dt.deviceType));
+            dl->AddRectFilled(tp, ImVec2(tp.x+ts.x, tp.y+ts.y), BgColor(deviceType));
             dl->AddText(ImVec2(tp.x+8, tp.y + ts.y/2 - 14),
-                        WaveColor(dt.deviceType), dt.name.c_str());
+                        WaveColor(deviceType), name.c_str());
             dl->AddText(ImVec2(tp.x+8, tp.y + ts.y/2 + 2),
                         Theme::TL_LABEL_LOADING, "loading...");
             dl->AddRect(tp, ImVec2(tp.x+ts.x, tp.y+ts.y), Theme::TL_EMPTY_BORDER);
         } else {
-            DrawTrackBox(tp, ts, dt.name.c_str(), dt.analyzerIdx, dt.deviceType);
+            DrawTrackBox(tp, ts, name.c_str(), analyzerIdx, deviceType);
         }
     }
 
-    // ── Bracket selection handles — only on Clip track row, drawn as overlay ──
+    // Bracket selection handles
     {
         const float wx       = cPos.x + LABEL_W;
         const float ww       = cSize.x - LABEL_W;
-        const float clipTop  = tracksTopY;           // top of Clip row only
-        const float clipBot  = tracksTopY + TRACK_H; // bottom of Clip row only
+        const float clipTop  = tracksTopY;
+        const float clipBot  = tracksTopY + TRACK_H;
         const float sx       = wx + ww * m_selectStart;
         const float ex       = wx + ww * m_selectEnd;
 
         constexpr float BAR_W   = 4.0f;
         constexpr float CAP_LEN = 12.0f;
         constexpr float CAP_W   = 4.0f;
-        const ImU32 COL_H = Theme::TL_HANDLE;
+        constexpr ImU32 COL_H = Theme::TL_HANDLE;
 
-        auto drawBracket = [&](float hx, bool leftFacing) {
+        auto drawBracket = [&](const float hx, const bool leftFacing) {
             const float capDir = leftFacing ? 1.0f : -1.0f;
             dl->AddRectFilled(ImVec2(hx - BAR_W*0.5f, clipTop), ImVec2(hx + BAR_W*0.5f, clipBot), COL_H);
             dl->AddRectFilled(ImVec2(hx - BAR_W*0.5f, clipTop), ImVec2(hx - BAR_W*0.5f + capDir*CAP_LEN, clipTop + CAP_W), COL_H);
@@ -297,11 +301,9 @@ void VideoEditState::DrawTimeline(const EditingScreen* parent, const VideoInfo&)
 
         drawBracket(sx, true);
         drawBracket(ex, false);
-
-        // (InvisibleButtons are registered inside DrawClipTrack BEFORE seek — see there)
     }
 
-    // ── Playhead line — drawn last so it's on top of everything ──
+    // Playhead line
     {
         const float wx  = cPos.x + LABEL_W;
         const float ww  = cSize.x - LABEL_W;
@@ -314,7 +316,7 @@ void VideoEditState::DrawTimeline(const EditingScreen* parent, const VideoInfo&)
     ImGui::EndChild();
 }
 
-void VideoEditState::DrawClipTrack(ImVec2 pos, ImVec2 size) {
+void VideoEditState::DrawClipTrack(const ImVec2 pos, const ImVec2 size) {
     ImDrawList* dl = ImGui::GetWindowDrawList();
 
     dl->AddRectFilled(pos, ImVec2(pos.x+size.x, pos.y+size.y), Theme::TL_CLIP_BG);
@@ -337,7 +339,7 @@ void VideoEditState::DrawClipTrack(ImVec2 pos, ImVec2 size) {
 
     dl->AddRect(pos, ImVec2(pos.x+size.x, pos.y+size.y), Theme::TL_CLIP_BORDER);
 
-    // ── IMPORTANT: handle buttons registered FIRST — they win over seek ──
+    // IMPORTANT: handle buttons registered FIRST — they win over seek
     constexpr float HIT_W = 44.0f;
 
     ImGui::SetCursorScreenPos(ImVec2(sx - HIT_W*0.5f, pos.y));
@@ -363,7 +365,7 @@ void VideoEditState::DrawClipTrack(ImVec2 pos, ImVec2 size) {
         m_videoPlayer->Seek(p * m_videoPlayer->GetDuration());
         m_videoPlayer->Update(0.0f);  // decode frame immediately, don't advance time
     } else if (ImGui::IsItemDeactivated()) {
-        // Mouse released — resume if was playing
+        // Mouse released — resume if it was playing
         if (m_wasPlayingBeforeScrub) { m_videoPlayer->Play(); m_isPlaying = true; }
     } else if (ImGui::IsItemClicked()) {
         const float p = std::clamp((ImGui::GetMousePos().x - wx) / ww, 0.f, 1.f);
@@ -372,7 +374,7 @@ void VideoEditState::DrawClipTrack(ImVec2 pos, ImVec2 size) {
     }
 }
 
-void VideoEditState::DrawTrackBox(ImVec2 pos, ImVec2 size, const char* label,
+void VideoEditState::DrawTrackBox(const ImVec2 pos, const ImVec2 size, const char* label,
                                   const int ti, const AudioDeviceType deviceType) const
 {
     ImDrawList* dl = ImGui::GetWindowDrawList();
@@ -411,8 +413,7 @@ void VideoEditState::DrawTrackBox(ImVec2 pos, ImVec2 size, const char* label,
 
     if (!noStream && m_audioAnalyzer && !silent && ti < m_audioAnalyzer->GetTrackCount()) {
         const auto& wf  = m_audioAnalyzer->GetWaveform(ti);
-        const int   tsec = m_audioAnalyzer->GetTotalSeconds();
-        if (tsec > 0) {
+        if (const int tsec = m_audioAnalyzer->GetTotalSeconds(); tsec > 0) {
             const float pps = ww / static_cast<float>(tsec);
             for (int s = 0; s < static_cast<int>(wf.size()); s++) {
                 const float bh = size.y * 0.42f * wf[s];
@@ -460,20 +461,29 @@ void VideoEditState::DrawTimelineHeader(const EditingScreen* parent,
     ImDrawList* dl = ImGui::GetWindowDrawList();
     dl->AddRectFilled(pos, ImVec2(pos.x+size.x, pos.y+size.y), IM_COL32(0,0,0,0));
 
-    std::string ts = FormatUtils::FormatDuration(m_videoPlayer->GetCurrentTime())
+    const std::string ts = FormatUtils::FormatDuration(m_videoPlayer->GetCurrentTime())
                    + " / "
                    + FormatUtils::FormatDuration(m_videoPlayer->GetDuration());
     dl->AddText(ImVec2(pos.x+10, pos.y+5), IM_COL32(255,255,255,255), ts.c_str());
 
-    constexpr float bW=50, bG=5, totW=3*bW+2*bG;
-    ImGui::SetCursorScreenPos(ImVec2(pos.x+(size.x-totW)/2, pos.y+5));
-    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.2f,0.2f,0.3f,0.8f));
+    // Transparent icon button style
+    auto PushIconBtnStyle = []() {
+        ImGui::PushStyleColor(ImGuiCol_Button,        ImVec4(0,0,0,0));
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(1,1,1,0.08f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive,  ImVec4(1,1,1,0.15f));
+    };
+    auto PopIconBtnStyle = []() { ImGui::PopStyleColor(3); };
 
-    if (ImGui::Button("Prev", ImVec2(bW,35))) {}
+    constexpr float bW=35, bG=5, totW=3*bW+2*bG;
+    ImGui::SetCursorScreenPos(ImVec2(pos.x+(size.x-totW)/2, pos.y+5));
+
+    PushIconBtnStyle();
+    if (ImGui::Button(reinterpret_cast<const char *>(ICON_PREVIOUS), ImVec2(bW,35))) {}
     ImGui::SameLine(0,bG);
 
-    const char* ppLbl = (m_playbackProgress>=1.f) ? "Restart"
-                       : (m_isPlaying ? "Pause" : "Play");
+    const auto ppLbl = reinterpret_cast<const char *>(m_playbackProgress >= 1.f
+                                                    ? ICON_REPLAY
+                                                    : m_isPlaying ? ICON_PAUSE : ICON_PLAY);
     if (ImGui::Button(ppLbl, ImVec2(bW,35))) {
         if (m_playbackProgress >= 1.f) {
             m_videoPlayer->Stop(); m_playbackProgress=0; m_videoPlayer->Play(); m_isPlaying=true;
@@ -484,16 +494,16 @@ void VideoEditState::DrawTimelineHeader(const EditingScreen* parent,
         }
     }
     ImGui::SameLine(0,bG);
-    if (ImGui::Button("Next", ImVec2(bW,35))) {}
-    ImGui::PopStyleColor();
+    if (ImGui::Button(reinterpret_cast<const char *>(ICON_NEXT), ImVec2(bW,35))) {}
+    PopIconBtnStyle();
 
-    constexpr float expW=55;
+    constexpr float expW=35;
     ImGui::SetCursorScreenPos(ImVec2(pos.x+size.x-(expW+bG+bW)-10, pos.y+5));
-    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.3f,0.5f,0.3f,0.8f));
-    if (ImGui::Button("Export", ImVec2(expW,35))) parent->m_showExportWidget=true;
+    PushIconBtnStyle();
+    if (ImGui::Button(reinterpret_cast<const char *>(ICON_EXPORT), ImVec2(expW,35))) parent->m_showExportWidget=true;
     ImGui::SameLine(0,bG);
-    if (ImGui::Button("...", ImVec2(bW,35))) {}
-    ImGui::PopStyleColor();
+    if (ImGui::Button(reinterpret_cast<const char *>(ICON_MENU), ImVec2(bW,35))) {}
+    PopIconBtnStyle();
 }
 
 void VideoEditState::DrawInfoBar(const EditingScreen* parent, const VideoInfo& video) const {
@@ -521,7 +531,7 @@ void VideoEditState::DrawInfoBar(const EditingScreen* parent, const VideoInfo& v
     ImGui::PopStyleVar();
 
     ImDrawList* dl  = ImGui::GetWindowDrawList();
-    ImVec2      pos = ImGui::GetWindowPos();
+    const ImVec2      pos = ImGui::GetWindowPos();
     const Config* cfg = CoreServices::Instance().GetConfig();
 
     const float ty = pos.y + (Theme::TOPBAR_H - ImGui::GetTextLineHeight()) * 0.5f;
@@ -542,10 +552,9 @@ void VideoEditState::DrawInfoBar(const EditingScreen* parent, const VideoInfo& v
     tx += 160.0f;
 
     if (m_audioAnalyzer || cfg) {
-        int cfgTrackCount  = cfg ? (int)cfg->nativeAudioTracks.size() : 0;
-        int fileTrackCount = m_audioAnalyzer ? m_audioAnalyzer->GetTrackCount() : 0;
-        int displayCount   = std::max(cfgTrackCount, fileTrackCount);
-        if (displayCount > 0) {
+        const int cfgTrackCount  = cfg ? static_cast<int>(cfg->nativeAudioTracks.size()) : 0;
+        const int fileTrackCount = m_audioAnalyzer ? m_audioAnalyzer->GetTrackCount() : 0;
+        if (const int displayCount   = std::max(cfgTrackCount, fileTrackCount); displayCount > 0) {
             snprintf(buf, sizeof(buf), "Audio: %d track(s)", displayCount);
             dl->AddText(ImVec2(tx, ty), ImGui::GetColorU32(Theme::TEXT_PRIMARY), buf);
         }
@@ -553,11 +562,13 @@ void VideoEditState::DrawInfoBar(const EditingScreen* parent, const VideoInfo& v
 
     constexpr float btnY = (Theme::TOPBAR_H - Theme::TOPBAR_BTN_H) * 0.5f;
     ImGui::SetCursorPos(ImVec2(totalW - Theme::TOPBAR_BTN_PAD - Theme::TOPBAR_BTN_W - 10.0f, btnY));
-    ImGui::PushStyleColor(ImGuiCol_Button,        Theme::BTN_NEUTRAL);
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6.0f, ImGui::GetStyle().FramePadding.y));
+    ImGui::PushStyleColor(ImGuiCol_Button,        ImVec4(0,0,0,0));
     ImGui::PushStyleColor(ImGuiCol_ButtonHovered, Theme::DANGER);
     ImGui::PushStyleColor(ImGuiCol_ButtonActive,  Theme::DANGER);
-    if (ImGui::Button("X", ImVec2(Theme::TOPBAR_BTN_W, Theme::TOPBAR_BTN_H))) parent->Close();
+    if (ImGui::Button(reinterpret_cast<const char *>(ICON_X), ImVec2(Theme::TOPBAR_BTN_W, Theme::TOPBAR_BTN_H))) parent->Close();
     ImGui::PopStyleColor(3);
+    ImGui::PopStyleVar();
 
     ImGui::EndChild();
     ImGui::PopStyleColor();
