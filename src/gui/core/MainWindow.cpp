@@ -1,9 +1,10 @@
 #include "gui/core/MainWindow.h"
 
+#include "gui/IconsCustom.h"
+#include "gui/Theme.h"
 #include "gui/screens/main/MainScreen.h"
 #include "gui/screens/settings/SettingsScreen.h"
 #include "gui/screens/editing/EditingScreen.h"
-#include "gui/Theme.h"
 
 #include <cstdio>
 
@@ -61,7 +62,19 @@ MainWindow::MainWindow(const int width, const int height, const char* title)
     ImGuiIO& io = ImGui::GetIO();
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
 
+    // Apply theme
     Theme::Apply();
+
+    // Add fonts
+    io.Fonts->AddFontDefault();
+
+    ImFontConfig config;
+    config.MergeMode = true;
+    config.PixelSnapH = true;
+    config.GlyphMinAdvanceX = 32.0f;
+
+    static constexpr ImWchar icon_ranges[] = { ICON_MIN_CUS, ICON_MAX_CUS, 0 };
+    io.Fonts->AddFontFromFileTTF("../include/gui/IconsCustom.ttf", 32.0f, &config, icon_ranges);
 
     // Setup Platform/Renderer backends
     ImGui_ImplGlfw_InitForOpenGL(window, true);
